@@ -1,2 +1,2 @@
-# LocalShopAPI
-Project for Computing Engineering
+# AppointmentManagerAPI
+API for managment of appointments for an orthodontic clinic
