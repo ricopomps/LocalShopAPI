@@ -4,7 +4,7 @@ In the project directory, you can run:
 
 ### `npm install`
 
-Install the necessary dependencies, MUST run firts before running the other scripts
+Install the necessary dependencies, MUST run first before running the other scripts
 
 ### `npm start`
 
