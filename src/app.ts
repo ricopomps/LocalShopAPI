@@ -7,6 +7,7 @@ import MongoStore from "connect-mongo";
 import createHttpError, { isHttpError } from "http-errors";
 import notesRoutes from "./routes/notes";
 import productsRoutes from "./routes/products";
+import storeRoutes from "./routes/stores";
 import usersRoutes from "./routes/users";
 import env from "./util/validateEnv";
 import { requiresAuth } from "./middleware/auth";
@@ -42,6 +43,7 @@ app.use(
 
 app.use("/api/notes", requiresAuth, notesRoutes);
 app.use("/api/products", requiresAuth, productsRoutes);
+app.use("/api/stores", requiresAuth, storeRoutes);
 app.use("/api/users", usersRoutes);
 
 app.use((req, res, next) => {

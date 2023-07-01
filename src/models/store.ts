@@ -1,8 +1,7 @@
 import { InferSchemaType, Schema, model } from "mongoose";
 
-const productSchema = new Schema(
+const storeSchema = new Schema(
   {
-    storeId: { type: Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
     description: { type: String },
     image: { type: String },
@@ -12,6 +11,6 @@ const productSchema = new Schema(
   }
 );
 
-type Product = InferSchemaType<typeof productSchema>;
+type Store = InferSchemaType<typeof storeSchema>;
 
-export default model<Product>("Product", productSchema);
+export default model<Store>("Store", storeSchema);

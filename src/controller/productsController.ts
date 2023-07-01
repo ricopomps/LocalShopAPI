@@ -6,7 +6,12 @@ import { assertIsDefined } from "../util/assertIsDefined";
 
 export const getProducts: RequestHandler = async (req, res, next) => {
   try {
-    const products = await ProductModel.find().exec();
+    const authenticatedStoreId = req.session.storeId;
+    assertIsDefined(authenticatedStoreId);
+
+    const products = await ProductModel.find({
+      storeId: authenticatedStoreId,
+    }).exec();
     res.status(200).json(products);
   } catch (error) {
     next(error);
@@ -25,6 +30,15 @@ export const getProduct: RequestHandler = async (req, res, next) => {
     if (!product) {
       throw createHttpError(404, "Product não encontrada");
     }
+
+    const authenticatedStoreId = req.session.storeId;
+    assertIsDefined(authenticatedStoreId);
+
+    if (!product.storeId.equals(authenticatedStoreId))
+      throw createHttpError(
+        401,
+        "Usuário não possui permissão para acessar essa informação"
+      );
 
     res.status(200).json(product);
   } catch (error) {
@@ -45,12 +59,16 @@ export const createProducts: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
+    const authenticatedStoreId = req.session.storeId;
+    assertIsDefined(authenticatedStoreId);
+
     const { name, description, image } = req.body;
     if (!name) {
       throw createHttpError(400, "O Titúlo é obrigatório");
     }
 
     const newProduct = await ProductModel.create({
+      storeId: authenticatedStoreId,
       name,
       description,
       image,
@@ -78,6 +96,9 @@ export const updateProduct: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
+    const authenticatedStoreId = req.session.storeId;
+    assertIsDefined(authenticatedStoreId);
+
     const { productId } = req.params;
     const {
       name: newName,
@@ -99,6 +120,12 @@ export const updateProduct: RequestHandler<
       throw createHttpError(404, "Product não encontrada");
     }
 
+    if (!product.storeId.equals(authenticatedStoreId))
+      throw createHttpError(
+        401,
+        "Usuário não possui permissão para acessar essa informação"
+      );
+
     product.name = newName;
     product.description = newDescription;
     product.image = newImage;
@@ -113,6 +140,9 @@ export const updateProduct: RequestHandler<
 
 export const deleteProduct: RequestHandler = async (req, res, next) => {
   try {
+    const authenticatedStoreId = req.session.storeId;
+    assertIsDefined(authenticatedStoreId);
+
     const { productId } = req.params;
 
     if (!mongoose.isValidObjectId(productId)) {
@@ -124,6 +154,12 @@ export const deleteProduct: RequestHandler = async (req, res, next) => {
     if (!product) {
       throw createHttpError(404, "Product não encontrada");
     }
+
+    if (!product.storeId.equals(authenticatedStoreId))
+      throw createHttpError(
+        401,
+        "Usuário não possui permissão para acessar essa informação"
+      );
 
     await product.deleteOne();
 
