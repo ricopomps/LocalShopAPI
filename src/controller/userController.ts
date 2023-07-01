@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
-import UserModel from "../models/user";
+import UserModel, { UserType } from "../models/user";
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {
@@ -20,6 +20,7 @@ interface SignUpBody {
   username?: string;
   email?: string;
   password?: string;
+  userType?: UserType;
 }
 
 export const signUp: RequestHandler<
@@ -29,7 +30,7 @@ export const signUp: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const { username, email, password: passwordRaw } = req.body;
+    const { username, email, password: passwordRaw, userType } = req.body;
 
     if (!username || !email || !passwordRaw)
       throw createHttpError(400, "Parametros inválidos ");
@@ -49,6 +50,7 @@ export const signUp: RequestHandler<
       username,
       email,
       password: passwordHashed,
+      userType,
     });
 
     req.session.userId = newUser._id;
