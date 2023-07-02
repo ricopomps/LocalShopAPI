@@ -2,6 +2,25 @@ import { RequestHandler } from "express";
 import StoreModel from "../models/store";
 import createHttpError from "http-errors";
 import mongoose from "mongoose";
+import { assertIsDefined } from "../util/assertIsDefined";
+
+export const setSessionStoreId: RequestHandler = async (req, res, next) => {
+  try {
+    const authenticatedUserId = req.session.userId;
+    assertIsDefined(authenticatedUserId);
+
+    const { storeId } = req.params;
+
+    const store = await StoreModel.findById(storeId).exec();
+
+    if (store?.users.filter((u) => u === authenticatedUserId))
+      req.session.storeId = store._id;
+
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getStores: RequestHandler = async (req, res, next) => {
   try {
@@ -15,6 +34,7 @@ export const getStores: RequestHandler = async (req, res, next) => {
 export const getStore: RequestHandler = async (req, res, next) => {
   try {
     const { storeId } = req.params;
+
     if (!mongoose.isValidObjectId(storeId)) {
       throw createHttpError(400, "Id inválido");
     }
@@ -44,6 +64,9 @@ export const createStores: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
+    const authenticatedUserId = req.session.userId;
+    assertIsDefined(authenticatedUserId);
+
     const { name, description, image } = req.body;
     if (!name) {
       throw createHttpError(400, "O Titúlo é obrigatório");
@@ -53,7 +76,10 @@ export const createStores: RequestHandler<
       name,
       description,
       image,
+      users: [authenticatedUserId],
     });
+
+    req.session.storeId = newStore._id;
     res.status(201).json(newStore);
   } catch (error) {
     next(error);
@@ -127,6 +153,29 @@ export const deleteStore: RequestHandler = async (req, res, next) => {
     await store.deleteOne();
 
     res.sendStatus(204);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStoreByLoggedUser: RequestHandler = async (req, res, next) => {
+  try {
+    const authenticatedUserId = req.session.userId;
+    assertIsDefined(authenticatedUserId);
+
+    if (!mongoose.isValidObjectId(authenticatedUserId)) {
+      throw createHttpError(400, "Id inválido");
+    }
+
+    const store = await StoreModel.findOne({
+      users: { $in: [authenticatedUserId] },
+    }).exec();
+
+    if (!store) {
+      return res.sendStatus(204);
+    }
+
+    res.status(200).json(store);
   } catch (error) {
     next(error);
   }
