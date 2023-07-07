@@ -32,6 +32,7 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
+      secure: env.ENVIROMENT === "PRODUCTION",
       sameSite: "none",
       maxAge: 60 * 60 * 1000,
     },
