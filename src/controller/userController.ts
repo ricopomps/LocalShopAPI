@@ -53,7 +53,7 @@ export const signUp: RequestHandler<
       userType,
     });
 
-    req.session.userId = newUser._id;
+    req.userId = newUser._id.toString();
 
     res.status(201).json(newUser);
   } catch (error) {
@@ -87,7 +87,7 @@ export const login: RequestHandler<
 
     if (!passwordMatch) throw createHttpError(401, "Credenciais inválidas");
 
-    req.session.userId = user._id;
+    req.userId = user._id.toString();
     res.status(201).json(user);
   } catch (error) {
     next(error);

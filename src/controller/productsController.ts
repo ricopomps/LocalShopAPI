@@ -6,7 +6,7 @@ import { assertIsDefined } from "../util/assertIsDefined";
 
 export const getProducts: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedStoreId = req.session.storeId;
+    const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
     const products = await ProductModel.find({
@@ -31,7 +31,7 @@ export const getProduct: RequestHandler = async (req, res, next) => {
       throw createHttpError(404, "Product não encontrada");
     }
 
-    const authenticatedStoreId = req.session.storeId;
+    const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
     if (!product.storeId.equals(authenticatedStoreId))
@@ -59,7 +59,7 @@ export const createProducts: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const authenticatedStoreId = req.session.storeId;
+    const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
     const { name, description, image } = req.body;
@@ -96,7 +96,7 @@ export const updateProduct: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const authenticatedStoreId = req.session.storeId;
+    const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
     const { productId } = req.params;
@@ -140,7 +140,7 @@ export const updateProduct: RequestHandler<
 
 export const deleteProduct: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedStoreId = req.session.storeId;
+    const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
     const { productId } = req.params;

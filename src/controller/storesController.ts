@@ -6,15 +6,15 @@ import { assertIsDefined } from "../util/assertIsDefined";
 
 export const setSessionStoreId: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
 
     const { storeId } = req.params;
 
     const store = await StoreModel.findById(storeId).exec();
 
-    if (store?.users.filter((u) => u === authenticatedUserId))
-      req.session.storeId = store._id;
+    if (store?.users.filter((u) => u.toString() === authenticatedUserId))
+      req.storeId = store._id.toString();
 
     res.sendStatus(200);
   } catch (error) {
@@ -64,7 +64,7 @@ export const createStores: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
 
     const { name, description, image } = req.body;
@@ -79,7 +79,7 @@ export const createStores: RequestHandler<
       users: [authenticatedUserId],
     });
 
-    req.session.storeId = newStore._id;
+    req.storeId = newStore._id.toString();
     res.status(201).json(newStore);
   } catch (error) {
     next(error);
@@ -160,7 +160,7 @@ export const deleteStore: RequestHandler = async (req, res, next) => {
 
 export const getStoreByLoggedUser: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
 
     if (!mongoose.isValidObjectId(authenticatedUserId)) {

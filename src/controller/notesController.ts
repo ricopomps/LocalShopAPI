@@ -6,7 +6,7 @@ import { assertIsDefined } from "../util/assertIsDefined";
 
 export const getNotes: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
     const notes = await NoteModel.find({ userId: authenticatedUserId }).exec();
     res.status(200).json(notes);
@@ -17,7 +17,7 @@ export const getNotes: RequestHandler = async (req, res, next) => {
 
 export const getNote: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
     const { noteId } = req.params;
     if (!mongoose.isValidObjectId(noteId)) {
@@ -54,7 +54,7 @@ export const createNotes: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
     const { title, text } = req.body;
     if (!title) {
@@ -88,7 +88,7 @@ export const updateNote: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
     const { noteId } = req.params;
     const { title: newTitle, text: newText } = req.body;
@@ -126,7 +126,7 @@ export const updateNote: RequestHandler<
 
 export const deleteNote: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.session.userId;
+    const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
     const { noteId } = req.params;
 

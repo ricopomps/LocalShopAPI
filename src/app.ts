@@ -9,8 +9,11 @@ import notesRoutes from "./routes/notes";
 import productsRoutes from "./routes/products";
 import storeRoutes from "./routes/stores";
 import usersRoutes from "./routes/users";
+import authRoutes from "./routes/auth";
 import env from "./util/validateEnv";
 import { requiresAuth } from "./middleware/auth";
+import { verifyJWT } from "./middleware/verifyJWT";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -32,8 +35,6 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: env.ENVIROMENT === "PRODUCTION",
-      sameSite: "none",
       maxAge: 60 * 60 * 1000,
     },
     rolling: true,
@@ -43,10 +44,13 @@ app.use(
   })
 );
 
-app.use("/api/notes", requiresAuth, notesRoutes);
-app.use("/api/products", requiresAuth, productsRoutes);
-app.use("/api/stores", requiresAuth, storeRoutes);
+app.use(cookieParser());
+
+app.use("/api/notes", verifyJWT, notesRoutes);
+app.use("/api/products", verifyJWT, productsRoutes);
+app.use("/api/stores", verifyJWT, storeRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/auth", authRoutes);
 
 app.use((req, res, next) => {
   next(createHttpError(404, "Rota não encontrada"));

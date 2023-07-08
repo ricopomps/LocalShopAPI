@@ -6,4 +6,6 @@ export default cleanEnv(process.env, {
   SESSION_SECRET: str(),
   FRONT_URL: str(),
   ENVIROMENT: str(),
+  ACCESS_TOKEN_SECRET: str(),
+  REFRESH_TOKEN_SECRET: str(),
 });
