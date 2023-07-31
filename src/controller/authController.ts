@@ -89,7 +89,9 @@ export const refresh: RequestHandler<
       async (err, decoded: any) => {
         if (err) return res.status(403).json({ message: "Forbidden" });
 
-        const foundUser = await UserModel.findOne(decoded?.userId).exec();
+        const foundUser = await UserModel.findOne({
+          _id: decoded?.userId,
+        }).exec();
 
         if (!foundUser)
           return res.status(401).json({ message: "Unauthorized" });
@@ -137,7 +139,7 @@ export const logout: RequestHandler<
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ message: "Succes" });
+    res.status(200).json({ message: "Success" });
   } catch (error) {
     next(error);
   }

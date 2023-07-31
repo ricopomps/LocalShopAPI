@@ -5,9 +5,9 @@ import UserModel, { UserType } from "../models/user";
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {
-    const { userId: authenticatedUser } = req.session;
+    const authenticatedUserId = req.userId;
 
-    const user = await UserModel.findById(authenticatedUser)
+    const user = await UserModel.findById(authenticatedUserId)
       .select("+email")
       .exec();
     res.status(200).json(user);
