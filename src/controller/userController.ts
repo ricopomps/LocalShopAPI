@@ -20,6 +20,8 @@ interface SignUpBody {
   username?: string;
   email?: string;
   password?: string;
+  confirmedPassword?: string;
+  cpf?: string;
   userType?: UserType;
 }
 
@@ -30,10 +32,10 @@ export const signUp: RequestHandler<
   unknown
 > = async (req, res, next) => {
   try {
-    const { username, email, password: passwordRaw, userType } = req.body;
+    const { username, email, password: passwordRaw, userType, confirmedPassword, cpf } = req.body;
 
-    if (!username || !email || !passwordRaw)
-      throw createHttpError(400, "Parametros inválidos ");
+    if (!username || !email || !passwordRaw || !confirmedPassword || !cpf)
+      throw createHttpError(400, "Parâmetros inválidos ");
 
     const existingUsername = await UserModel.findOne({ username }).exec();
 
@@ -41,8 +43,17 @@ export const signUp: RequestHandler<
       throw createHttpError(409, "Nome do usuário já existe");
 
     const existingEmail = await UserModel.findOne({ email }).exec();
-
+    
     if (existingEmail) throw createHttpError(409, "Email já cadastrado");
+
+    const existingCpf = await UserModel.findOne({ cpf }).exec();
+
+    if(existingCpf)
+      throw createHttpError(400, "CPF já cadastrado");
+
+    if (confirmedPassword !== passwordRaw) {
+      throw createHttpError(400, "Senhas não coincidem!")
+    }
 
     const passwordHashed = await bcrypt.hash(passwordRaw, 10);
 
@@ -51,6 +62,7 @@ export const signUp: RequestHandler<
       email,
       password: passwordHashed,
       userType,
+      cpf
     });
 
     req.userId = newUser._id.toString();
