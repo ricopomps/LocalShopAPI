@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import StoreModel from "../models/store";
+import StoreModel, { StoreCategories } from "../models/store";
 import createHttpError from "http-errors";
 import mongoose from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
@@ -55,6 +55,8 @@ interface createStoreBody {
   name?: string;
   description?: string;
   image?: string;
+  cnpj?: string;
+  category?: StoreCategories;
 }
 
 export const createStores: RequestHandler<
@@ -67,9 +69,19 @@ export const createStores: RequestHandler<
     const authenticatedUserId = req.userId;
     assertIsDefined(authenticatedUserId);
 
-    const { name, description, image } = req.body;
+    const { name, description, image, cnpj, category } = req.body;
     if (!name) {
-      throw createHttpError(400, "O Titúlo é obrigatório");
+      throw createHttpError(400, "O título é obrigatório");
+    }
+
+    const existingCnpj = await StoreModel.findOne({ cnpj }).exec();
+
+    if (existingCnpj) {
+      throw createHttpError(400, "CNPJ já cadastrado");
+    }
+
+    if(category && !Object.values(StoreCategories).includes(category)) {
+      throw createHttpError(400, "Categoria inválida!")
     }
 
     const newStore = await StoreModel.create({
@@ -77,6 +89,8 @@ export const createStores: RequestHandler<
       description,
       image,
       users: [authenticatedUserId],
+      cnpj,
+      category
     });
 
     req.storeId = newStore._id.toString();
@@ -115,13 +129,13 @@ export const updateStore: RequestHandler<
     }
 
     if (!newName) {
-      throw createHttpError(400, "O Titúlo é obrigatório");
+      throw createHttpError(400, "Nome é obrigatório!");
     }
 
     const store = await StoreModel.findById(storeId).exec();
 
     if (!store) {
-      throw createHttpError(404, "Store não encontrada");
+      throw createHttpError(404, "Loja não encontrada!");
     }
 
     store.name = newName;
@@ -147,12 +161,12 @@ export const deleteStore: RequestHandler = async (req, res, next) => {
     const store = await StoreModel.findById(storeId).exec();
 
     if (!store) {
-      throw createHttpError(404, "Store não encontrada");
+      throw createHttpError(404, "Loja não encontrada");
     }
 
     await store.deleteOne();
 
-    res.sendStatus(204);
+    res.sendStatus(201);
   } catch (error) {
     next(error);
   }
