@@ -80,8 +80,8 @@ export const createStores: RequestHandler<
       throw createHttpError(400, "CNPJ já cadastrado");
     }
 
-    if(category && !Object.values(StoreCategories).includes(category)) {
-      throw createHttpError(400, "Categoria inválida!")
+    if (category && !Object.values(StoreCategories).includes(category)) {
+      throw createHttpError(400, "Categoria inválida!");
     }
 
     const newStore = await StoreModel.create({
@@ -90,7 +90,7 @@ export const createStores: RequestHandler<
       image,
       users: [authenticatedUserId],
       cnpj,
-      category
+      category,
     });
 
     req.storeId = newStore._id.toString();
