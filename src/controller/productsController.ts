@@ -1,5 +1,5 @@
 import { RequestHandler } from "express";
-import ProductModel from "../models/product";
+import ProductModel, { ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
 import mongoose from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
@@ -50,6 +50,7 @@ interface createProductBody {
   name?: string;
   description?: string;
   image?: string;
+  category?: ProductCategories;
 }
 
 export const createProducts: RequestHandler<
@@ -62,9 +63,18 @@ export const createProducts: RequestHandler<
     const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
-    const { name, description, image } = req.body;
+    const { name, description, image, category } = req.body;
+
     if (!name) {
-      throw createHttpError(400, "O Titúlo é obrigatório");
+      throw createHttpError(400, "O nome é obrigatório");
+    }
+
+    if (!category) {
+      throw createHttpError(400, "A categoria é obrigatório");
+    }
+
+    if (!Object.values(ProductCategories).includes(category)) {
+      throw createHttpError(400, "Categoria inválida!");
     }
 
     const newProduct = await ProductModel.create({
@@ -72,6 +82,7 @@ export const createProducts: RequestHandler<
       name,
       description,
       image,
+      category,
     });
     res.status(201).json(newProduct);
   } catch (error) {
@@ -87,6 +98,7 @@ interface UpdateProductBody {
   name?: string;
   description?: string;
   image?: string;
+  category?: ProductCategories;
 }
 
 export const updateProduct: RequestHandler<
@@ -104,6 +116,7 @@ export const updateProduct: RequestHandler<
       name: newName,
       description: newDescription,
       image: newImage,
+      category: newCategory,
     } = req.body;
 
     if (!mongoose.isValidObjectId(productId)) {
@@ -126,9 +139,17 @@ export const updateProduct: RequestHandler<
         "Usuário não possui permissão para acessar essa informação"
       );
 
+    if (
+      newCategory &&
+      !Object.values(ProductCategories).includes(newCategory)
+    ) {
+      throw createHttpError(400, "Categoria inválida!");
+    }
+
     product.name = newName;
     product.description = newDescription;
     product.image = newImage;
+    product.category = newCategory ?? product.category;
 
     const updatedProduct = await product.save();
 
@@ -164,6 +185,15 @@ export const deleteProduct: RequestHandler = async (req, res, next) => {
     await product.deleteOne();
 
     res.sendStatus(204);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getProductCategories: RequestHandler = async (req, res, next) => {
+  try {
+    const productsCategories = Object.values(ProductCategories);
+    res.status(200).json({ categories: productsCategories });
   } catch (error) {
     next(error);
   }
