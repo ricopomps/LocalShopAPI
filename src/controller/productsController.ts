@@ -149,7 +149,7 @@ export const updateProduct: RequestHandler<
     product.name = newName;
     product.description = newDescription;
     product.image = newImage;
-    product.category = product.category ?? newCategory;
+    product.category = newCategory ?? product.category;
 
     const updatedProduct = await product.save();
 
