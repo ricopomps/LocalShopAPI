@@ -46,7 +46,7 @@ export const getProduct: RequestHandler = async (req, res, next) => {
   }
 };
 
-interface createProductBody {
+interface CreateProductBody {
   name?: string;
   description?: string;
   image?: string;
@@ -56,7 +56,7 @@ interface createProductBody {
 export const createProducts: RequestHandler<
   unknown,
   unknown,
-  createProductBody,
+  CreateProductBody,
   unknown
 > = async (req, res, next) => {
   try {
@@ -196,5 +196,55 @@ export const getProductCategories: RequestHandler = async (req, res, next) => {
     res.status(200).json({ categories: productsCategories });
   } catch (error) {
     next(error);
+  }
+}
+interface ListProductsParams {
+  storeId: string;
+}
+
+interface ListProductsQuery {
+  productName?: string;
+  category?: ProductCategories;
+  /*
+  Verificar como fazer isso com o Mongoose
+  priceFrom?: number;
+  priceTo?: number;*/
+}
+
+export const  listProducts: RequestHandler<
+ListProductsParams,
+unknown,
+unknown,
+ListProductsQuery
+> = async (req, res, next) => {
+  try {
+    const authenticatedStoreId = req.params.storeId;
+    assertIsDefined(authenticatedStoreId);
+    const {
+      productName,
+      category,
+      /*priceFrom,
+      priceTo,*/
+    } = req.query;
+
+    if (!mongoose.isValidObjectId(authenticatedStoreId)) {
+      throw createHttpError(400, "Loja não encontrada (ID inválido)!");
+    }
+
+    if (category && !Object.values(ProductCategories).includes(category)) {
+      throw createHttpError(400, "Categoria inválida!");
+    }
+
+    const products = await ProductModel.find({
+      storeId: authenticatedStoreId,
+      name: productName,
+      category,
+      /* priceFrom,
+      priceTo,*/
+    }).exec();
+
+    res.status(200).json(products);
+  } catch (error) {
+   next(error);
   }
 };
