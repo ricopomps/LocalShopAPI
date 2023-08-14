@@ -74,10 +74,18 @@ export const createStores: RequestHandler<
       throw createHttpError(400, "O título é obrigatório");
     }
 
+    if (!cnpj) {
+      throw createHttpError(400, "CNPJ é obrigatório");
+    }
+
     const existingCnpj = await StoreModel.findOne({ cnpj }).exec();
 
     if (existingCnpj) {
       throw createHttpError(400, "CNPJ já cadastrado");
+    }
+
+    if (!category) {
+      throw createHttpError(400, "Categoria é obrigatória");
     }
 
     if (category && !Object.values(StoreCategories).includes(category)) {
