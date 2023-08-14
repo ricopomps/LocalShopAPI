@@ -203,7 +203,7 @@ export const getProductCategories: RequestHandler = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-}
+};
 interface ListProductsFromUserParams {
   storeId: ObjectId;
 }
@@ -217,16 +217,19 @@ interface ListProductsByUserQuery {
 
 interface ListProductsByUserFilter {
   storeId: ObjectId;
-  name?: {$regex: string; $options: string};
+  name?: { $regex: string; $options: string };
   category?: ProductCategories;
-  price?: any;
+  price?: {
+    $gte?: number;
+    $lte?: number;
+  };
 }
 
-export const  listProducts: RequestHandler<
-ListProductsFromUserParams,
-unknown,
-unknown,
-ListProductsByUserQuery
+export const listProducts: RequestHandler<
+  ListProductsFromUserParams,
+  unknown,
+  unknown,
+  ListProductsByUserQuery
 > = async (req, res, next) => {
   try {
     const { storeId } = req.params;
@@ -236,12 +239,7 @@ ListProductsByUserQuery
       throw createHttpError(400, "Loja não encontrada (ID inválido)!");
     }
 
-    const {
-      productName,
-      category,
-      priceFrom,
-      priceTo,
-    } = req.query;
+    const { productName, category, priceFrom, priceTo } = req.query;
 
     if (category && !Object.values(ProductCategories).includes(category)) {
       throw createHttpError(400, "Categoria inválida!");
@@ -249,32 +247,32 @@ ListProductsByUserQuery
 
     let filter: ListProductsByUserFilter = { storeId };
 
-    if(productName) {
-      filter = { ...filter, name: { $regex: productName, $options: "i"}}
+    if (productName) {
+      filter = { ...filter, name: { $regex: productName, $options: "i" } };
     }
 
-    if(category) {
-      filter = {...filter, category}
+    if (category) {
+      filter = { ...filter, category };
     }
 
     if (priceFrom && priceTo) {
-      if (priceFrom < priceTo) {
+      if (priceFrom > priceTo) {
         throw createHttpError(400, "Intervalo de preços inválido!");
       }
     }
 
     if (priceFrom) {
-      filter = {...filter, price: {$gte: priceFrom}}
+      filter = { ...filter, price: { $gte: priceFrom } };
     }
 
     if (priceTo) {
-      filter = {...filter, price: {$lte: priceTo}}
+      filter = { ...filter, price: { ...filter.price, $lte: priceTo } };
     }
 
     const products = await ProductModel.find(filter).exec();
-    
+
     res.status(200).json(products);
   } catch (error) {
-   next(error);
+    next(error);
   }
 };
