@@ -204,9 +204,11 @@ export const getProductCategories: RequestHandler = async (req, res, next) => {
     next(error);
   }
 };
+
 interface ListProductsFromUserParams {
   storeId: ObjectId;
 }
+
 interface ListProductsByUserQuery {
   storeId: ObjectId;
   productName?: string;
@@ -255,10 +257,8 @@ export const listProducts: RequestHandler<
       filter = { ...filter, category };
     }
 
-    if (priceFrom && priceTo) {
-      if (priceFrom > priceTo) {
-        throw createHttpError(400, "Intervalo de preços inválido!");
-      }
+    if (priceFrom && priceTo && priceFrom > priceTo) {
+      throw createHttpError(400, "Intervalo de preços inválido!");
     }
 
     if (priceFrom) {
