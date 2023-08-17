@@ -10,8 +10,8 @@ import productsRoutes from "./routes/products";
 import storeRoutes from "./routes/stores";
 import usersRoutes from "./routes/users";
 import authRoutes from "./routes/auth";
+import shoppingListRoutes from "./routes/shoppingList";
 import env from "./util/validateEnv";
-import { requiresAuth } from "./middleware/auth";
 import { verifyJWT } from "./middleware/verifyJWT";
 import cookieParser from "cookie-parser";
 
@@ -51,6 +51,7 @@ app.use("/api/products", verifyJWT, productsRoutes);
 app.use("/api/stores", verifyJWT, storeRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/shoppinglist", verifyJWT, shoppingListRoutes);
 
 app.use((req, res, next) => {
   next(createHttpError(404, "Rota não encontrada"));
