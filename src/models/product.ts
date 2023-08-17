@@ -18,6 +18,7 @@ const productSchema = new Schema(
       required: true,
       enum: Object.values(ProductCategories),
     },
+    price:{ type: Number, required: true }
   },
   {
     timestamps: true,
