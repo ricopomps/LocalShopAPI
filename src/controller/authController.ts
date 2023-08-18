@@ -149,37 +149,6 @@ export const logout: RequestHandler<
   }
 };
 
-export const sendMail: RequestHandler = async (req, res, next) => {
-  try {
-    const response = await emailService.sendEmail(
-      "ricardopompiliodossantos@gmail.com, localshopapi@outlook.com",
-      "Email test",
-      "content",
-      "<b>content</b>"
-    );
-
-    res.status(200).json(response);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const createToken: RequestHandler = async (req, res, next) => {
-  try {
-    const { userId } = req.params;
-    console.log(req.params);
-    const token = await TokenModel.create({
-      user: userId,
-      code: userId,
-      expireAt: new Date(new Date().getTime() + 1 * 60000),
-    });
-
-    res.status(200).json(token);
-  } catch (error) {
-    next(error);
-  }
-};
-
 interface SendRecoverPasswordEmailBody {
   email?: string;
 }
