@@ -1,11 +1,6 @@
 import { InferSchemaType, Schema, model } from "mongoose";
 import shoppingList, { ShoppingListProducts } from "./shoppingList";
 
-export type History = {
-    shoppingList: ShoppingListProducts;
-    date: Date;
-  };
-
   const historySchema = new Schema(
     {
       storeId: { type: Schema.Types.ObjectId, ref: "Store", required: true },
@@ -18,6 +13,6 @@ export type History = {
     }
   );
   
-  type ShoppingList = InferSchemaType<typeof historySchema>;
+  type History = InferSchemaType<typeof historySchema>;
   
-  export default model<ShoppingList>("ShoppingList", historySchema);
+  export default model<History>("History", historySchema);
