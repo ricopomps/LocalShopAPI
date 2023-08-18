@@ -25,6 +25,6 @@ const productSchema = new Schema(
   }
 );
 
-type Product = InferSchemaType<typeof productSchema>;
+export type Product = InferSchemaType<typeof productSchema>;
 
 export default model<Product>("Product", productSchema);
