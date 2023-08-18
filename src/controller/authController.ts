@@ -206,11 +206,13 @@ export const sendRecoverPasswordEmail: RequestHandler<
     if (!token)
       throw createHttpError(500, "Falha ao criar o token de segurança");
 
+    const link = `${env.FRONT_URL}/recover?token=${token._id}`;
+
     const response = await emailService.sendEmail(
       email,
       "Recuperação de senha",
-      `Para recuperar a senha, acesse esse link: ${env.FRONT_URL}/${token._id}`,
-      `<p>Para recuperar a senha, acesse esse link: </p><a>${env.FRONT_URL}/${token._id}</a>`
+      `Para recuperar a senha, acesse esse link: ${link}`,
+      `<p>Para recuperar a senha, acesse esse link: </p><a>${link}</a>`
     );
 
     res.status(200).json(response);
