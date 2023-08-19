@@ -138,7 +138,11 @@ export const favoriteProduct: RequestHandler = async (req, res, next) => {
     const user = await UserModel.findById(authenticatedUserId);
 
     if (!user) {
-      throw createHttpError(400, "Usuário não encontrado!");
+      throw createHttpError(404, "Usuário não encontrado!");
+    }
+
+    if (user.favoriteProducts && user.favoriteProducts.includes(productId)) {
+      throw createHttpError(400, "Produto já foi favoritado!");
     }
 
     user.favoriteProducts = [...user.favoriteProducts, { productId }];
@@ -168,8 +172,42 @@ export const favoriteStores: RequestHandler = async (req, res, next) => {
       throw createHttpError(400, "Usuário não encontrado!");
     }
 
+    if (user.favoriteStores && user.favoriteStores.includes(storeId)) {
+      throw createHttpError(400, "Loja já foi favoritado!");
+    }
+
     user.favoriteStores = [...user.favoriteStores, { storeId }];
 
+    await user.save();
+
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+interface UpdateUserBody {
+  username?: string;
+  email?: string;
+}
+
+export const updateUser: RequestHandler<
+  unknown,
+  unknown,
+  UpdateUserBody,
+  unknown
+> = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    assertIsDefined(userId);
+
+    const user = await UserModel.findById(userId).exec();
+    if (!user) throw createHttpError(404, "Usuário não encontrado!");
+
+    const { username, email } = req.body;
+
+    user.username = username ?? user.username;
+    user.email = email ?? user.email;
     await user.save();
 
     res.sendStatus(200);
