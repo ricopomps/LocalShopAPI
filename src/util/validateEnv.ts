@@ -8,4 +8,10 @@ export default cleanEnv(process.env, {
   ENVIROMENT: str(),
   ACCESS_TOKEN_SECRET: str(),
   REFRESH_TOKEN_SECRET: str(),
+  EMAIL_HOST: str(),
+  EMAIL_SMTP_PORT: str(),
+  EMAIL_FROM: str(),
+  EMAIL_FROM_NAME: str(),
+  EMAIL_USER: str(),
+  EMAIL_PASS: str(),
 });

@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import ProductModel, { ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
 
 export const getProducts: RequestHandler = async (req, res, next) => {
@@ -46,24 +46,25 @@ export const getProduct: RequestHandler = async (req, res, next) => {
   }
 };
 
-interface createProductBody {
+interface CreateProductBody {
   name?: string;
   description?: string;
   image?: string;
   category?: ProductCategories;
+  price?: number;
 }
 
 export const createProducts: RequestHandler<
   unknown,
   unknown,
-  createProductBody,
+  CreateProductBody,
   unknown
 > = async (req, res, next) => {
   try {
     const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
-    const { name, description, image, category } = req.body;
+    const { name, description, image, category, price } = req.body;
 
     if (!name) {
       throw createHttpError(400, "O nome é obrigatório");
@@ -77,12 +78,17 @@ export const createProducts: RequestHandler<
       throw createHttpError(400, "Categoria inválida!");
     }
 
+    if (!price) {
+      throw createHttpError(400, "Precificação obrigatória!");
+    }
+
     const newProduct = await ProductModel.create({
       storeId: authenticatedStoreId,
       name,
       description,
       image,
       category,
+      price,
     });
     res.status(201).json(newProduct);
   } catch (error) {
@@ -194,6 +200,78 @@ export const getProductCategories: RequestHandler = async (req, res, next) => {
   try {
     const productsCategories = Object.values(ProductCategories);
     res.status(200).json({ categories: productsCategories });
+  } catch (error) {
+    next(error);
+  }
+};
+
+interface ListProductsFromUserParams {
+  storeId: ObjectId;
+}
+
+interface ListProductsByUserQuery {
+  storeId: ObjectId;
+  productName?: string;
+  category?: ProductCategories;
+  priceFrom?: number;
+  priceTo?: number;
+}
+
+interface ListProductsByUserFilter {
+  storeId: ObjectId;
+  name?: { $regex: string; $options: string };
+  category?: ProductCategories;
+  price?: {
+    $gte?: number;
+    $lte?: number;
+  };
+}
+
+export const listProducts: RequestHandler<
+  ListProductsFromUserParams,
+  unknown,
+  unknown,
+  ListProductsByUserQuery
+> = async (req, res, next) => {
+  try {
+    const { storeId } = req.params;
+    assertIsDefined(storeId);
+
+    if (!mongoose.isValidObjectId(storeId)) {
+      throw createHttpError(400, "Loja não encontrada (ID inválido)!");
+    }
+
+    const { productName, category, priceFrom, priceTo } = req.query;
+
+    if (category && !Object.values(ProductCategories).includes(category)) {
+      throw createHttpError(400, "Categoria inválida!");
+    }
+
+    let filter: ListProductsByUserFilter = { storeId };
+
+    if (productName) {
+      filter = { ...filter, name: { $regex: productName, $options: "i" } };
+    }
+
+    if (category) {
+      filter = { ...filter, category };
+    }
+
+    if (priceFrom && priceTo && priceFrom > priceTo) {
+      throw createHttpError(400, "Intervalo de preços inválido!");
+    }
+
+    if (priceFrom) {
+      filter = { ...filter, price: { $gte: priceFrom } };
+    }
+
+    if (priceTo) {
+      filter = { ...filter, price: { ...filter.price, $lte: priceTo } };
+    }
+
+    const products = await ProductModel.find(filter).exec();
+
+    res.status(200).json(products);
   } catch (error) {
     next(error);
   }

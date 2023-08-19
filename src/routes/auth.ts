@@ -6,5 +6,7 @@ const router = express.Router();
 router.post("/", AuthController.auth);
 router.get("/refresh", AuthController.refresh);
 router.post("/logout", AuthController.logout);
+router.post("/recover", AuthController.sendRecoverPasswordEmail);
+router.post("/change", AuthController.changePassword);
 
 export default router;
