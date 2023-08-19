@@ -4,14 +4,30 @@ import createHttpError from "http-errors";
 import mongoose, { ObjectId } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
 
-export const getProducts: RequestHandler = async (req, res, next) => {
+interface GetProductsQuery {
+  page: number;
+  take?: number;
+}
+
+export const getProducts: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  GetProductsQuery
+> = async (req, res, next) => {
   try {
     const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
+    const { page = 0, take = 10 } = req.query;
+
     const products = await ProductModel.find({
       storeId: authenticatedStoreId,
-    }).exec();
+    })
+      .limit(take)
+      .skip(page * take)
+      .exec();
+
     res.status(200).json(products);
   } catch (error) {
     next(error);
