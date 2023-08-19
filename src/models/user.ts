@@ -16,6 +16,20 @@ const userSchema = new Schema({
     default: UserType.shopper,
     enum: Object.values(UserType),
   },
+  favoriteProducts: [{
+    productId: {
+      type: Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    }
+  }],
+  favoriteStores: [{
+    storeId: {
+      type: Schema.Types.ObjectId,
+      ref: "Store",
+      required: true,
+    }
+  }]
 });
 
 export type User = InferSchemaType<typeof userSchema>;
