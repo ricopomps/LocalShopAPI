@@ -8,5 +8,6 @@ router.get("/", verifyJWT, UserController.getAuthenticatedUser);
 router.post("/signup", UserController.signUp);
 router.post("/login", UserController.login);
 router.post("/logout", verifyJWT, UserController.logout);
+router.patch("/", verifyJWT, UserController.updateUser);
 
 export default router;
