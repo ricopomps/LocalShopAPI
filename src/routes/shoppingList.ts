@@ -3,7 +3,7 @@ import * as ShoppingListController from "../controller/shoppingListController";
 
 const router = express.Router();
 
-router.get("/:userId", ShoppingListController.getShoppingListsByUser);
+router.get("/:storeId", ShoppingListController.getShoppingListsByUser);
 router.post("/", ShoppingListController.createShoppingList);
 
 export default router;
