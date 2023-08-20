@@ -59,13 +59,8 @@ export const createShoppingList: RequestHandler<
 };
 
 interface GetShoppingListsByUserParams {
-  userId: string;
+  storeId: string;
 }
-
-interface GetShoppingListsByUserQuery {
-  storeId?: string;
-}
-
 interface GetShoppingListsByUserFilter {
   creatorId: mongoose.Types.ObjectId;
   storeId?: mongoose.Types.ObjectId;
@@ -79,18 +74,17 @@ export const getShoppingListsByUser: RequestHandler<
   GetShoppingListsByUserParams,
   unknown,
   unknown,
-  GetShoppingListsByUserQuery
+  unknown
 > = async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const userId = req.userId;
 
     if (!mongoose.isValidObjectId(userId)) {
       throw createHttpError(400, "Id do usuário inválido");
     }
+    const { storeId } = req.params;
 
-    const { storeId } = req.query;
-
-    if (storeId && !mongoose.isValidObjectId(storeId)) {
+    if (!storeId || (storeId && !mongoose.isValidObjectId(storeId))) {
       throw createHttpError(400, "Id da loja inválido");
     }
 
@@ -143,7 +137,21 @@ export const getShoppingListsByUser: RequestHandler<
               as: "productObj",
               in: {
                 product: {
-                  $arrayElemAt: ["$populatedProducts", 0],
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$populatedProducts",
+                        as: "populatedProduct",
+                        cond: {
+                          $eq: [
+                            "$$populatedProduct._id",
+                            "$$productObj.product",
+                          ],
+                        },
+                      },
+                    },
+                    0,
+                  ],
                 },
                 quantity: "$$productObj.quantity",
               },
@@ -154,7 +162,7 @@ export const getShoppingListsByUser: RequestHandler<
       { $unset: "populatedProducts" },
     ]).exec();
 
-    res.status(203).json(shoppingLists);
+    res.status(200).json(shoppingLists[0]);
   } catch (error) {
     next(error);
   }
