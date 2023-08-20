@@ -27,7 +27,7 @@ export const auth: RequestHandler<
       throw createHttpError(400, "Parâmetros faltando");
 
     const user = await UserModel.findOne({ username })
-      .select("+password +email")
+      .select("+password +email +cpf")
       .exec();
 
     if (!user) throw createHttpError(401, "Credenciais inválidas");
@@ -66,7 +66,8 @@ export const auth: RequestHandler<
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(201).json({ user, accessToken });
+    const { password: passwordUser, ...safeUser } = user.toObject();
+    res.status(201).json({ user: safeUser, accessToken });
   } catch (error) {
     next(error);
   }

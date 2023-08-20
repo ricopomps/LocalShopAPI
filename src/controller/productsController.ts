@@ -120,6 +120,7 @@ interface UpdateProductBody {
   description?: string;
   image?: string;
   category?: ProductCategories;
+  price?: number;
 }
 
 export const updateProduct: RequestHandler<
@@ -138,6 +139,7 @@ export const updateProduct: RequestHandler<
       description: newDescription,
       image: newImage,
       category: newCategory,
+      price: newPrice,
     } = req.body;
 
     if (!mongoose.isValidObjectId(productId)) {
@@ -167,10 +169,11 @@ export const updateProduct: RequestHandler<
       throw createHttpError(400, "Categoria inválida!");
     }
 
-    product.name = newName;
-    product.description = newDescription;
-    product.image = newImage;
+    product.name = newName ?? product.name;
+    product.description = newDescription ?? product.description;
+    product.image = newImage ?? product.image;
     product.category = newCategory ?? product.category;
+    product.price = newPrice ?? product.price;
 
     const updatedProduct = await product.save();
 
