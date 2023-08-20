@@ -67,7 +67,7 @@ export const auth: RequestHandler<
     });
 
     const { password: passwordUser, ...safeUser } = user.toObject();
-    res.status(201).json({ safeUser, accessToken });
+    res.status(201).json({ user: safeUser, accessToken });
   } catch (error) {
     next(error);
   }
