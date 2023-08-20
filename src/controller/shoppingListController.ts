@@ -1,9 +1,7 @@
 import { RequestHandler } from "express";
 import mongoose, { ObjectId } from "mongoose";
 import createHttpError from "http-errors";
-import ShoppingListModel, {
-  ShoppingListProducts,
-} from "../models/shoppingList";
+import ShoppingListModel from "../models/shoppingList";
 
 interface CreateShoppingListBody {
   storeId?: ObjectId;

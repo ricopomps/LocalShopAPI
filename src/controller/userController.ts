@@ -3,7 +3,7 @@ import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
 import UserModel, { UserType } from "../models/user";
 import { assertIsDefined } from "../util/assertIsDefined";
-import mongoose, { ObjectId } from "mongoose";
+import mongoose from "mongoose";
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {

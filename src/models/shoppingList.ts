@@ -1,10 +1,4 @@
 import { InferSchemaType, Schema, model } from "mongoose";
-import { Product } from "./product";
-
-export type ShoppingListProducts = {
-  product: Product;
-  quantity: number;
-};
 
 const shoppingListSchema = new Schema(
   {
