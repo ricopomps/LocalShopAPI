@@ -20,7 +20,6 @@ const shoppingListSchema = new Schema(
         quantity: { type: Number, required: true },
       },
     ],
-    totalValue: { type: Number, required: true },
   },
   {
     timestamps: true,
