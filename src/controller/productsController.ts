@@ -5,6 +5,7 @@ import mongoose, { ObjectId } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
 
 interface GetProductsQuery {
+  storeId: ObjectId;
   page: number;
   take?: number;
 }
@@ -16,13 +17,11 @@ export const getProducts: RequestHandler<
   GetProductsQuery
 > = async (req, res, next) => {
   try {
-    const authenticatedStoreId = req.storeId;
-    assertIsDefined(authenticatedStoreId);
-
-    const { page = 0, take = 10 } = req.query;
+    const { page = 0, take = 10, storeId } = req.query;
+    assertIsDefined(storeId);
 
     const products = await ProductModel.find({
-      storeId: authenticatedStoreId,
+      storeId,
     })
       .limit(take)
       .skip(page * take)
