@@ -7,8 +7,7 @@ import ShoppingListModel, {
 
 interface CreateShoppingListBody {
   storeId?: ObjectId;
-  products?: ShoppingListProducts[];
-  totalValue?: number;
+  products?: { product: string; quantity: number }[];
 }
 
 export const createShoppingList: RequestHandler<
@@ -19,25 +18,39 @@ export const createShoppingList: RequestHandler<
 > = async (req, res, next) => {
   try {
     const creatorId = req.userId;
-    const { storeId, products, totalValue } = req.body;
+    const { storeId, products } = req.body;
 
     if (!mongoose.isValidObjectId(creatorId || storeId)) {
       throw createHttpError(400, "Id inválido");
     }
 
-    if (products?.length == 0) {
+    if (!products || products?.length == 0) {
       throw createHttpError(
         400,
         "Não é possível criar uma lista de compras sem produtos"
       );
     }
 
-    const shoppingList = await ShoppingListModel.create({
-      storeId,
+    let shoppingList = await ShoppingListModel.findOne({
       creatorId,
-      products,
-      totalValue,
-    });
+      storeId,
+    }).exec();
+
+    if (shoppingList) {
+      shoppingList.products = products.map((item) => {
+        return {
+          product: new mongoose.Types.ObjectId(item.product),
+          quantity: item.quantity,
+        };
+      });
+      await shoppingList.save();
+    } else {
+      shoppingList = await ShoppingListModel.create({
+        storeId,
+        creatorId,
+        products,
+      });
+    }
 
     res.status(200).json(shoppingList);
   } catch (error) {
