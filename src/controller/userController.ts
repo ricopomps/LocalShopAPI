@@ -145,7 +145,7 @@ export const favoriteProduct: RequestHandler = async (req, res, next) => {
       throw createHttpError(400, "Produto já foi favoritado!");
     }
 
-    user.favoriteProducts = [...user.favoriteProducts, { productId }];
+    user.favoriteProducts = [...user.favoriteProducts, productId];
 
     await user.save();
 
@@ -176,7 +176,7 @@ export const favoriteStores: RequestHandler = async (req, res, next) => {
       throw createHttpError(400, "Loja já foi favoritado!");
     }
 
-    user.favoriteStores = [...user.favoriteStores, { storeId }];
+    user.favoriteStores = [...user.favoriteStores, storeId];
 
     await user.save();
 
