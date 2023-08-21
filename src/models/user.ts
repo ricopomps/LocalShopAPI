@@ -20,16 +20,12 @@ const userSchema = new Schema({
     {
       type: Schema.Types.ObjectId,
       ref: "Product",
-      required: true,
-      unique: true,
     },
   ],
   favoriteStores: [
     {
       type: Schema.Types.ObjectId,
       ref: "Store",
-      required: true,
-      unique: true,
     },
   ],
 });
