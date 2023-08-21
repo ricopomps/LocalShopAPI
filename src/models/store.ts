@@ -4,7 +4,7 @@ export enum StoreCategories {
   market = "Mercado",
   retail = "Varejo",
   eletronics = "Eletrônicos",
-  fastFood = "Fast Food"
+  fastFood = "Fast Food",
 }
 
 const storeSchema = new Schema(
@@ -13,8 +13,12 @@ const storeSchema = new Schema(
     description: { type: String },
     image: { type: String },
     users: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    cnpj: { type: String, required: true},
-    category: { type: String, required: true, enum: Object.values(StoreCategories)}
+    cnpj: { type: String, required: true },
+    category: {
+      type: String,
+      required: true,
+      enum: Object.values(StoreCategories),
+    },
   },
   {
     timestamps: true,

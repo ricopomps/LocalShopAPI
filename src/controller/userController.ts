@@ -3,8 +3,9 @@ import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
 import UserModel, { UserType } from "../models/user";
 import { assertIsDefined } from "../util/assertIsDefined";
-import mongoose, { ObjectId } from "mongoose";
-
+import mongoose from "mongoose";
+import env from "../util/validateEnv";
+import jwt from "jsonwebtoken";
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {
     const authenticatedUserId = req.userId;
@@ -73,9 +74,34 @@ export const signUp: RequestHandler<
       cpf,
     });
 
+    const accessToken = jwt.sign(
+      {
+        UserInfo: {
+          username: newUser.username,
+          userId: newUser._id,
+          userType: newUser.userType,
+        },
+      },
+      env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { username: newUser.username, userId: newUser._id },
+      env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
     req.userId = newUser._id.toString();
 
-    res.status(201).json(newUser);
+    res.status(201).json({ user: newUser, accessToken });
   } catch (error) {
     next(error);
   }
