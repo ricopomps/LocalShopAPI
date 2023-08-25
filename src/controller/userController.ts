@@ -6,6 +6,7 @@ import { assertIsDefined } from "../util/assertIsDefined";
 import mongoose from "mongoose";
 import env from "../util/validateEnv";
 import jwt from "jsonwebtoken";
+
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {
     const authenticatedUserId = req.userId;
