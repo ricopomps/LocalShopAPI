@@ -46,15 +46,6 @@ export const getProduct: RequestHandler = async (req, res, next) => {
       throw createHttpError(404, "Product não encontrada");
     }
 
-    const authenticatedStoreId = req.storeId;
-    assertIsDefined(authenticatedStoreId);
-
-    if (!product.storeId.equals(authenticatedStoreId))
-      throw createHttpError(
-        401,
-        "Usuário não possui permissão para acessar essa informação"
-      );
-
     res.status(200).json(product);
   } catch (error) {
     next(error);
@@ -121,6 +112,12 @@ interface UpdateProductBody {
   image?: string;
   category?: ProductCategories;
   price?: number;
+  location: Location;
+}
+
+interface Location {
+  x: number;
+  y: number;
 }
 
 export const updateProduct: RequestHandler<
@@ -140,14 +137,11 @@ export const updateProduct: RequestHandler<
       image: newImage,
       category: newCategory,
       price: newPrice,
+      location: newLocation,
     } = req.body;
 
     if (!mongoose.isValidObjectId(productId)) {
       throw createHttpError(400, "Id inválido");
-    }
-
-    if (!newName) {
-      throw createHttpError(400, "O Titúlo é obrigatório");
     }
 
     const product = await ProductModel.findById(productId).exec();
@@ -174,6 +168,7 @@ export const updateProduct: RequestHandler<
     product.image = newImage ?? product.image;
     product.category = newCategory ?? product.category;
     product.price = newPrice ?? product.price;
+    product.location = newLocation ?? product.location;
 
     const updatedProduct = await product.save();
 
@@ -289,6 +284,18 @@ export const listProducts: RequestHandler<
 
     const products = await ProductModel.find(filter).exec();
 
+    res.status(200).json(products);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getProductList: RequestHandler = async (req, res, next) => {
+  try {
+    const storeId = req.storeId;
+    assertIsDefined(storeId);
+
+    const products = await ProductModel.find({ storeId }).select("name").exec();
     res.status(200).json(products);
   } catch (error) {
     next(error);

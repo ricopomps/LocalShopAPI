@@ -116,6 +116,8 @@ interface UpdateStoreBody {
   name?: string;
   description?: string;
   image?: string;
+  category?: StoreCategories;
+  cnpj?: string;
 }
 
 export const updateStore: RequestHandler<
@@ -130,6 +132,8 @@ export const updateStore: RequestHandler<
       name: newName,
       description: newDescription,
       image: newImage,
+      cnpj: newCnpj,
+      category: newCategory
     } = req.body;
 
     if (!mongoose.isValidObjectId(storeId)) {
@@ -149,6 +153,8 @@ export const updateStore: RequestHandler<
     store.name = newName;
     store.description = newDescription;
     store.image = newImage;
+    store.cnpj = store.cnpj ?? newCnpj;
+    store.category = newCategory ?? store.category;
 
     const updatedStore = await store.save();
 

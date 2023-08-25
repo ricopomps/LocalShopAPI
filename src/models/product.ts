@@ -5,6 +5,7 @@ export enum ProductCategories {
   medicine = "Medicamento",
   eletronics = "Eletrônicos",
   fastFood = "Fast Food",
+  pets = "Pets",
 }
 
 const productSchema = new Schema(
@@ -18,7 +19,11 @@ const productSchema = new Schema(
       required: true,
       enum: Object.values(ProductCategories),
     },
-    price:{ type: Number, required: true }
+    price: { type: Number, required: true },
+    location: {
+      x: { type: Number },
+      y: { type: Number },
+    },
   },
   {
     timestamps: true,
