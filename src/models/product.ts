@@ -20,6 +20,10 @@ const productSchema = new Schema(
       enum: Object.values(ProductCategories),
     },
     price: { type: Number, required: true },
+    location: {
+      x: { type: Number },
+      y: { type: Number },
+    },
   },
   {
     timestamps: true,
