@@ -46,15 +46,6 @@ export const getProduct: RequestHandler = async (req, res, next) => {
       throw createHttpError(404, "Product não encontrada");
     }
 
-    const authenticatedStoreId = req.storeId;
-    assertIsDefined(authenticatedStoreId);
-
-    if (!product.storeId.equals(authenticatedStoreId))
-      throw createHttpError(
-        401,
-        "Usuário não possui permissão para acessar essa informação"
-      );
-
     res.status(200).json(product);
   } catch (error) {
     next(error);
