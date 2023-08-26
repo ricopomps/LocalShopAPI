@@ -84,11 +84,6 @@ export const getShoppingListsHistoryByUser: RequestHandler<
       filter.$match.storeId = new mongoose.Types.ObjectId(storeId);
     }
 
-   /* const shoppingListsHistory = await ShoppingListHistoryModel.find({
-        storeId, creatorId : userId
-    }).exec()*/
-    
-    
     const shoppingListsHistory = await ShoppingListHistoryModel.aggregate([
       filter,
       {
