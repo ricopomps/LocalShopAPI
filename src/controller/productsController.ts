@@ -254,7 +254,10 @@ export const listProducts: RequestHandler<
       throw createHttpError(400, "Loja não encontrada (ID inválido)!");
     }
 
-    const { productName, category, priceFrom, priceTo } = req.query;
+    const { productName, category } = req.query;
+
+    const priceFrom = Number(req.query.priceFrom);
+    const priceTo = Number(req.query.priceTo);
 
     if (category && !Object.values(ProductCategories).includes(category)) {
       throw createHttpError(400, "Categoria inválida!");
