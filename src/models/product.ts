@@ -8,7 +8,7 @@ export enum ProductCategories {
   pets = "Pets",
 }
 
-const productSchema = new Schema(
+export const productSchema = new Schema(
   {
     storeId: { type: Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
