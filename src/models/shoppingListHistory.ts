@@ -1,4 +1,5 @@
 import { InferSchemaType, Schema, model } from "mongoose";
+import { productSchema } from "./product";
 
 const shoppingListHistorySchema = new Schema(
   {
@@ -6,11 +7,7 @@ const shoppingListHistorySchema = new Schema(
     creatorId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     products: [
       {
-        product: {
-          type: Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
+        product: productSchema,
         quantity: { type: Number, required: true },
       },
     ],

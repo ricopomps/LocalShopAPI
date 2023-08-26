@@ -2,11 +2,11 @@ import { RequestHandler } from "express";
 import mongoose, { ObjectId } from "mongoose";
 import createHttpError from "http-errors";
 import ShoppingListHistoryModel from "../models/shoppingListHistory";
+import { Product } from "../models/product";
 
 interface CreateShoppingListHistoryBody {
   storeId?: ObjectId;
-  products?: { product: string; quantity: number }[];
-  totalValue?: number;
+  products?: { product: Product; quantity: number }[];
 }
 
 export const createShoppingListHistory: RequestHandler<
@@ -17,7 +17,7 @@ export const createShoppingListHistory: RequestHandler<
 > = async (req, res, next) => {
   try {
     const creatorId = req.userId;
-    const { storeId, products, totalValue } = req.body;
+    const { storeId, products } = req.body;
 
     if (!mongoose.isValidObjectId(creatorId || storeId)) {
       throw createHttpError(400, "Id inválido");
@@ -30,12 +30,8 @@ export const createShoppingListHistory: RequestHandler<
       );
     }
 
-    if (!totalValue) {
-      throw createHttpError(
-        400,
-        "Deve ser informado o valor total da lista de compras."
-      );
-    }
+    let totalValue = 0;
+    products.forEach(p => totalValue += p.product.price * p.quantity);
 
     await ShoppingListHistoryModel.create({
       storeId,
@@ -112,46 +108,7 @@ export const getShoppingListsHistoryByUser: RequestHandler<
       },
       {
         $unwind: "$store",
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "products.product",
-          foreignField: "_id",
-          as: "populatedProducts",
-        },
-      },
-      {
-        $addFields: {
-          products: {
-            $map: {
-              input: "$products",
-              as: "productObj",
-              in: {
-                product: {
-                  $arrayElemAt: [
-                    {
-                      $filter: {
-                        input: "$populatedProducts",
-                        as: "populatedProduct",
-                        cond: {
-                          $eq: [
-                            "$$populatedProduct._id",
-                            "$$productObj.product",
-                          ],
-                        },
-                      },
-                    },
-                    0,
-                  ],
-                },
-                quantity: "$$productObj.quantity",
-              },
-            },
-          },
-        },
-      },
-      { $unset: "populatedProducts" },
+      }
     ]).exec();
 
     res.status(200).json(shoppingListsHistory);
