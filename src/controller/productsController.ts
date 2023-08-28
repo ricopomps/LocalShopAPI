@@ -58,6 +58,9 @@ interface CreateProductBody {
   image?: string;
   category?: ProductCategories;
   price?: number;
+  sale: boolean;
+  oldPrice?: number;
+  salePercentage?: number;
 }
 
 export const createProducts: RequestHandler<
@@ -70,7 +73,13 @@ export const createProducts: RequestHandler<
     const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
-    const { name, description, image, category, price } = req.body;
+    const { name, description, image, category } = req.body;
+
+    const sale = Boolean(req.body.sale);
+    const price = Number(req.body.price);
+    const oldPrice = Number(req.body.oldPrice);
+
+    let salePercentage;
 
     if (!name) {
       throw createHttpError(400, "O nome é obrigatório");
@@ -88,6 +97,18 @@ export const createProducts: RequestHandler<
       throw createHttpError(400, "Precificação obrigatória!");
     }
 
+    if (price >= oldPrice && sale) {
+      throw createHttpError(400, "Precificação incoerente!");
+    }
+
+    if (oldPrice <= price || oldPrice === 0 || sale === false) {
+      salePercentage = 0;
+    }
+
+    if (sale === true) {
+      salePercentage = ((oldPrice - price) / oldPrice) * 100;
+    }
+
     const newProduct = await ProductModel.create({
       storeId: authenticatedStoreId,
       name,
@@ -95,7 +116,11 @@ export const createProducts: RequestHandler<
       image,
       category,
       price,
+      sale,
+      oldPrice,
+      salePercentage,
     });
+
     res.status(201).json(newProduct);
   } catch (error) {
     next(error);
@@ -113,6 +138,8 @@ interface UpdateProductBody {
   category?: ProductCategories;
   price?: number;
   location: Location;
+  sale: boolean;
+  oldPrice?: number;
 }
 
 interface Location {
@@ -137,7 +164,9 @@ export const updateProduct: RequestHandler<
       image: newImage,
       category: newCategory,
       price: newPrice,
+      sale: newSale,
       location: newLocation,
+      oldPrice: newOldPrice,
     } = req.body;
 
     if (!mongoose.isValidObjectId(productId)) {
@@ -163,12 +192,27 @@ export const updateProduct: RequestHandler<
       throw createHttpError(400, "Categoria inválida!");
     }
 
+    if (!newPrice) {
+      throw createHttpError(400, "Precificação inválida!");
+    }
+
     product.name = newName ?? product.name;
     product.description = newDescription ?? product.description;
     product.image = newImage ?? product.image;
     product.category = newCategory ?? product.category;
+    product.oldPrice = product.price;
     product.price = newPrice ?? product.price;
     product.location = newLocation ?? product.location;
+    product.sale = newSale ?? product.sale;
+
+    if (newSale && newOldPrice) {
+      product.salePercentage = ((newOldPrice - newPrice) / newOldPrice) * 100;
+    } else {
+      product.salePercentage = 0;
+    }
+
+    console.log(newSale === true && product.price && product.oldPrice);
+    console.log(product.price, product.oldPrice, product.salePercentage);
 
     const updatedProduct = await product.save();
 
