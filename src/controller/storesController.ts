@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import StoreModel, { StoreCategories } from "../models/store";
 import createHttpError from "http-errors";
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
 
 export const setSessionStoreId: RequestHandler = async (req, res, next) => {
@@ -133,7 +133,7 @@ export const updateStore: RequestHandler<
       description: newDescription,
       image: newImage,
       cnpj: newCnpj,
-      category: newCategory
+      category: newCategory,
     } = req.body;
 
     if (!mongoose.isValidObjectId(storeId)) {
@@ -204,6 +204,62 @@ export const getStoreByLoggedUser: RequestHandler = async (req, res, next) => {
     }
 
     res.status(200).json(store);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStoreCategories: RequestHandler = async (req, res, next) => {
+  try {
+    const storeCategories = Object.values(StoreCategories);
+    res.status(200).json({ categories: storeCategories });
+  } catch (error) {
+    next(error);
+  }
+};
+interface ListStoresQuery {
+  category?: StoreCategories;
+  name?: string;
+  description?: string;
+  cnpj?: string;
+}
+
+interface ListStoresFilter {
+  name?: { $regex: string; $options: string };
+  description?: { $regex: string; $options: string };
+  cnpj?: { $regex: string; $options: string };
+  category?: StoreCategories;
+}
+
+export const listStores: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  ListStoresQuery
+> = async (req, res, next) => {
+  try {
+    const { category, name, description, cnpj } = req.query;
+
+    const filter: ListStoresFilter = {};
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (name) {
+      filter.name = { $regex: name, $options: "i" };
+    }
+
+    if (description) {
+      filter.description = { $regex: description, $options: "i" };
+    }
+
+    if (cnpj) {
+      filter.cnpj = { $regex: cnpj, $options: "i" };
+    }
+
+    const stores = await StoreModel.find(filter).exec();
+    res.status(200).json(stores);
   } catch (error) {
     next(error);
   }
