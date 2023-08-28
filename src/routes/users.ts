@@ -10,6 +10,8 @@ router.post("/login", UserController.login);
 router.post("/logout", verifyJWT, UserController.logout);
 router.post("/favoriteProduct", verifyJWT,UserController.favoriteProduct);
 router.post("/favoriteStores", verifyJWT, UserController.favoriteStores);
+router.post("/unFavoriteProduct", verifyJWT, UserController.favoriteStores);
+router.post("/unFavoriteStores", verifyJWT, UserController.unFavoriteStores);
 router.patch("/", verifyJWT, UserController.updateUser);
 
 export default router;

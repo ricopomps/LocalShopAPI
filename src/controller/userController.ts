@@ -242,3 +242,73 @@ export const updateUser: RequestHandler<
     next(error);
   }
 };
+
+export const unFavoriteProduct: RequestHandler = async (req, res, next) => {
+  try {
+    const authenticatedUserId = req.userId;
+    assertIsDefined(authenticatedUserId);
+
+    const { productId } = req.body;
+
+    if (!mongoose.isValidObjectId(productId)) {
+      throw createHttpError(400, "ID de produto inválida.");
+    }
+
+    const user = await UserModel.findById(authenticatedUserId);
+
+    if (!user) {
+      throw createHttpError(404, "Usuário não encontrado!");
+    }
+
+    if (user.favoriteProducts && user.favoriteProducts.includes(productId)) {
+      throw createHttpError(400, "Produto já foi favoritado!");
+    }
+
+    const indexToRemove = user.favoriteProducts.indexOf(productId);
+
+    if (indexToRemove !== -1) {
+      user.favoriteProducts.splice(indexToRemove, 1);
+    }
+
+    await user.save();
+
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const unFavoriteStores: RequestHandler = async (req, res, next) => {
+  try {
+    const authenticatedUserId = req.userId;
+    assertIsDefined(authenticatedUserId);
+
+    const { storeId } = req.body;
+
+    if (!mongoose.isValidObjectId(storeId)) {
+      throw createHttpError(400, "ID de loja inválida.");
+    }
+
+    const user = await UserModel.findById(authenticatedUserId);
+
+    if (!user) {
+      throw createHttpError(400, "Usuário não encontrado!");
+    }
+
+    if (user.favoriteStores && !user.favoriteStores.includes(storeId)) {
+      throw createHttpError(400, "Loja não consta na lista de favoritos!");
+    }
+
+    const indexToRemove = user.favoriteStores.indexOf(storeId);
+
+    if (indexToRemove !== -1) {
+      user.favoriteStores.splice(indexToRemove, 1);
+    }
+
+    await user.save();
+
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
