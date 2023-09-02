@@ -266,10 +266,6 @@ export const unFavoriteProduct: RequestHandler = async (req, res, next) => {
       throw createHttpError(404, "Usuário não encontrado!");
     }
 
-    if (user.favoriteProducts && user.favoriteProducts.includes(productId)) {
-      throw createHttpError(400, "Produto já foi favoritado!");
-    }
-
     const indexToRemove = user.favoriteProducts.indexOf(productId);
 
     if (indexToRemove !== -1) {
