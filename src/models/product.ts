@@ -24,6 +24,9 @@ export const productSchema = new Schema(
       x: { type: Number },
       y: { type: Number },
     },
+    sale: { type: Boolean, required: true },
+    oldPrice: { type: Number },
+    salePercentage: { type: Number },
     stock: { type: Number, required: true, default: 0 },
   },
   {

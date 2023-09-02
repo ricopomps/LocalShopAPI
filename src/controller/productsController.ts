@@ -58,6 +58,9 @@ interface CreateProductBody {
   image?: string;
   category?: ProductCategories;
   price?: number;
+  sale: boolean;
+  oldPrice?: number;
+  salePercentage?: number;
 }
 
 export const createProducts: RequestHandler<
@@ -70,7 +73,13 @@ export const createProducts: RequestHandler<
     const authenticatedStoreId = req.storeId;
     assertIsDefined(authenticatedStoreId);
 
-    const { name, description, image, category, price } = req.body;
+    const { name, description, image, category } = req.body;
+
+    const sale = Boolean(req.body.sale);
+    const price = Number(req.body.price);
+    const oldPrice = Number(req.body.oldPrice);
+
+    let salePercentage;
 
     if (!name) {
       throw createHttpError(400, "O nome é obrigatório");
@@ -88,6 +97,18 @@ export const createProducts: RequestHandler<
       throw createHttpError(400, "Precificação obrigatória!");
     }
 
+    if (price >= oldPrice && sale) {
+      throw createHttpError(400, "Precificação incoerente!");
+    }
+
+    if (oldPrice <= price || oldPrice === 0 || sale === false) {
+      salePercentage = 0;
+    }
+
+    if (sale === true) {
+      salePercentage = ((oldPrice - price) / oldPrice) * 100;
+    }
+
     const newProduct = await productService.createProduct({
       storeId: authenticatedStoreId,
       name,
@@ -95,7 +116,11 @@ export const createProducts: RequestHandler<
       image,
       category,
       price,
+      sale,
+      oldPrice,
+      salePercentage,
     });
+
     res.status(201).json(newProduct);
   } catch (error) {
     next(error);
@@ -112,7 +137,9 @@ interface UpdateProductBody {
   image?: string;
   category?: ProductCategories;
   price?: number;
-  location?: Location;
+  location: Location;
+  sale: boolean;
+  oldPrice?: number;
   stock?: number;
 }
 
@@ -138,7 +165,9 @@ export const updateProduct: RequestHandler<
       image: newImage,
       category: newCategory,
       price: newPrice,
+      sale: newSale,
       location: newLocation,
+      oldPrice: newOldPrice,
       stock: newStock,
     } = req.body;
 
@@ -152,9 +181,22 @@ export const updateProduct: RequestHandler<
       image: newImage,
       category: newCategory,
       price: newPrice,
+      sale: newSale,
       location: newLocation,
+      oldPrice: newOldPrice,
       stock: newStock,
     };
+
+    if (
+      newCategory &&
+      !Object.values(ProductCategories).includes(newCategory)
+    ) {
+      throw createHttpError(400, "Categoria inválida!");
+    }
+
+    if (!newPrice) {
+      throw createHttpError(400, "Precificação inválida!");
+    }
 
     const updatedProduct = await productService.updateProduct(
       productId,
