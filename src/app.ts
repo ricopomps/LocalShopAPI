@@ -11,6 +11,8 @@ import storeRoutes from "./routes/stores";
 import usersRoutes from "./routes/users";
 import authRoutes from "./routes/auth";
 import mapRoutes from "./routes/map";
+import reportsRoutes from "./routes/reports";
+import notificationRoutes from "./routes/notification";
 import shoppingListRoutes from "./routes/shoppingList";
 import shoppingListHistoryRoutes from "./routes/shoppingListHistory";
 import env from "./util/validateEnv";
@@ -56,7 +58,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/shoppinglist", verifyJWT, shoppingListRoutes);
 app.use("/api/shoppingListHistory", verifyJWT, shoppingListHistoryRoutes);
 app.use("/api/map", verifyJWT, mapRoutes);
-
+app.use("/api/notifications", verifyJWT, notificationRoutes);
+app.use("/api/reports", verifyJWT, reportsRoutes);
 
 app.use((req, res, next) => {
   next(createHttpError(404, "Rota não encontrada"));

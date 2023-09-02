@@ -3,6 +3,9 @@ import ProductModel, { ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
 import mongoose, { ObjectId } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
+import { IProductService, ProductService } from "../service/productService";
+
+const productService: IProductService = new ProductService();
 
 interface GetProductsQuery {
   storeId: ObjectId;
@@ -36,15 +39,12 @@ export const getProducts: RequestHandler<
 export const getProduct: RequestHandler = async (req, res, next) => {
   try {
     const { productId } = req.params;
+
     if (!mongoose.isValidObjectId(productId)) {
       throw createHttpError(400, "Id inválido");
     }
 
-    const product = await ProductModel.findById(productId).exec();
-
-    if (!product) {
-      throw createHttpError(404, "Product não encontrada");
-    }
+    const product = await productService.getProduct(productId);
 
     res.status(200).json(product);
   } catch (error) {
@@ -109,7 +109,7 @@ export const createProducts: RequestHandler<
       salePercentage = ((oldPrice - price) / oldPrice) * 100;
     }
 
-    const newProduct = await ProductModel.create({
+    const newProduct = await productService.createProduct({
       storeId: authenticatedStoreId,
       name,
       description,
@@ -140,6 +140,7 @@ interface UpdateProductBody {
   location: Location;
   sale: boolean;
   oldPrice?: number;
+  stock?: number;
 }
 
 interface Location {
@@ -167,23 +168,24 @@ export const updateProduct: RequestHandler<
       sale: newSale,
       location: newLocation,
       oldPrice: newOldPrice,
+      stock: newStock,
     } = req.body;
 
     if (!mongoose.isValidObjectId(productId)) {
       throw createHttpError(400, "Id inválido");
     }
 
-    const product = await ProductModel.findById(productId).exec();
-
-    if (!product) {
-      throw createHttpError(404, "Product não encontrada");
-    }
-
-    if (!product.storeId.equals(authenticatedStoreId))
-      throw createHttpError(
-        401,
-        "Usuário não possui permissão para acessar essa informação"
-      );
+    const productData: UpdateProductBody = {
+      name: newName,
+      description: newDescription,
+      image: newImage,
+      category: newCategory,
+      price: newPrice,
+      sale: newSale,
+      location: newLocation,
+      oldPrice: newOldPrice,
+      stock: newStock,
+    };
 
     if (
       newCategory &&
@@ -196,25 +198,10 @@ export const updateProduct: RequestHandler<
       throw createHttpError(400, "Precificação inválida!");
     }
 
-    product.name = newName ?? product.name;
-    product.description = newDescription ?? product.description;
-    product.image = newImage ?? product.image;
-    product.category = newCategory ?? product.category;
-    product.oldPrice = product.price;
-    product.price = newPrice ?? product.price;
-    product.location = newLocation ?? product.location;
-    product.sale = newSale ?? product.sale;
-
-    if (newSale && newOldPrice) {
-      product.salePercentage = ((newOldPrice - newPrice) / newOldPrice) * 100;
-    } else {
-      product.salePercentage = 0;
-    }
-
-    console.log(newSale === true && product.price && product.oldPrice);
-    console.log(product.price, product.oldPrice, product.salePercentage);
-
-    const updatedProduct = await product.save();
+    const updatedProduct = await productService.updateProduct(
+      productId,
+      productData
+    );
 
     res.status(200).json(updatedProduct);
   } catch (error) {
