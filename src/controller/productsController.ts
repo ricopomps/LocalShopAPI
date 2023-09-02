@@ -112,7 +112,8 @@ interface UpdateProductBody {
   image?: string;
   category?: ProductCategories;
   price?: number;
-  location: Location;
+  location?: Location;
+  stock?: number;
 }
 
 interface Location {
@@ -138,39 +139,27 @@ export const updateProduct: RequestHandler<
       category: newCategory,
       price: newPrice,
       location: newLocation,
+      stock: newStock,
     } = req.body;
 
     if (!mongoose.isValidObjectId(productId)) {
       throw createHttpError(400, "Id inválido");
     }
 
-    const product = await ProductModel.findById(productId).exec();
+    const productData: UpdateProductBody = {
+      name: newName,
+      description: newDescription,
+      image: newImage,
+      category: newCategory,
+      price: newPrice,
+      location: newLocation,
+      stock: newStock,
+    };
 
-    if (!product) {
-      throw createHttpError(404, "Product não encontrada");
-    }
-
-    if (!product.storeId.equals(authenticatedStoreId))
-      throw createHttpError(
-        401,
-        "Usuário não possui permissão para acessar essa informação"
-      );
-
-    if (
-      newCategory &&
-      !Object.values(ProductCategories).includes(newCategory)
-    ) {
-      throw createHttpError(400, "Categoria inválida!");
-    }
-
-    product.name = newName ?? product.name;
-    product.description = newDescription ?? product.description;
-    product.image = newImage ?? product.image;
-    product.category = newCategory ?? product.category;
-    product.price = newPrice ?? product.price;
-    product.location = newLocation ?? product.location;
-
-    const updatedProduct = await product.save();
+    const updatedProduct = await productService.updateProduct(
+      productId,
+      productData
+    );
 
     res.status(200).json(updatedProduct);
   } catch (error) {
