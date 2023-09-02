@@ -34,6 +34,9 @@ interface ProductData {
     x?: number;
     y?: number;
   };
+  sale?: boolean;
+  oldPrice?: number;
+  salePercentage?: number;
   stock?: number;
 }
 
@@ -77,10 +80,6 @@ export class ProductService implements IProductService {
       if (!existingProduct)
         throw createHttpError(404, "Produto não encontrado");
 
-      if (!existingProduct) {
-        throw createHttpError(404, "Produto não encontrado");
-      }
-
       if (productData.name !== undefined) {
         existingProduct.name = productData.name;
       }
@@ -106,6 +105,12 @@ export class ProductService implements IProductService {
 
       if (productData.location !== undefined) {
         existingProduct.location = productData.location;
+      }
+
+      if (productData.sale && productData.oldPrice && productData.price) {
+        existingProduct.salePercentage = ((productData.oldPrice - productData.price) / productData.oldPrice) * 100;
+      } else {
+        existingProduct.salePercentage = 0;
       }
 
       if (productData.stock !== undefined) {
