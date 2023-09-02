@@ -3,14 +3,19 @@ import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
 import UserModel, { UserType } from "../models/user";
 import { assertIsDefined } from "../util/assertIsDefined";
-import mongoose, { ObjectId } from "mongoose";
+import mongoose from "mongoose";
+import env from "../util/validateEnv";
+import jwt from "jsonwebtoken";
+import { NotificationService } from "../service/notificationService";
+
+const notificationService = new NotificationService();
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {
     const authenticatedUserId = req.userId;
 
     const user = await UserModel.findById(authenticatedUserId)
-      .select("+email")
+      .select("+email +cpf")
       .exec();
     res.status(200).json(user);
   } catch (error) {
@@ -73,9 +78,34 @@ export const signUp: RequestHandler<
       cpf,
     });
 
-    req.userId = newUser._id.toString();
+    const accessToken = jwt.sign(
+      {
+        UserInfo: {
+          username: newUser.username,
+          userId: newUser._id,
+          userType: newUser.userType,
+        },
+      },
+      env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
 
-    res.status(201).json(newUser);
+    const refreshToken = jwt.sign(
+      { username: newUser.username, userId: newUser._id },
+      env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    req.userId = newUser._id;
+
+    res.status(201).json({ user: newUser, accessToken });
   } catch (error) {
     next(error);
   }
@@ -107,7 +137,7 @@ export const login: RequestHandler<
 
     if (!passwordMatch) throw createHttpError(401, "Credenciais inválidas");
 
-    req.userId = user._id.toString();
+    req.userId = user._id;
     res.status(201).json(user);
   } catch (error) {
     next(error);
@@ -208,6 +238,75 @@ export const updateUser: RequestHandler<
 
     user.username = username ?? user.username;
     user.email = email ?? user.email;
+    await user.save();
+    await notificationService.createNotification(
+      userId,
+      "Alterações realizadas no perfil"
+    );
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const unFavoriteProduct: RequestHandler = async (req, res, next) => {
+  try {
+    const authenticatedUserId = req.userId;
+    assertIsDefined(authenticatedUserId);
+
+    const { productId } = req.body;
+
+    if (!mongoose.isValidObjectId(productId)) {
+      throw createHttpError(400, "ID de produto inválida.");
+    }
+
+    const user = await UserModel.findById(authenticatedUserId);
+
+    if (!user) {
+      throw createHttpError(404, "Usuário não encontrado!");
+    }
+
+    const indexToRemove = user.favoriteProducts.indexOf(productId);
+
+    if (indexToRemove !== -1) {
+      user.favoriteProducts.splice(indexToRemove, 1);
+    }
+
+    await user.save();
+
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const unFavoriteStores: RequestHandler = async (req, res, next) => {
+  try {
+    const authenticatedUserId = req.userId;
+    assertIsDefined(authenticatedUserId);
+
+    const { storeId } = req.body;
+
+    if (!mongoose.isValidObjectId(storeId)) {
+      throw createHttpError(400, "ID de loja inválida.");
+    }
+
+    const user = await UserModel.findById(authenticatedUserId);
+
+    if (!user) {
+      throw createHttpError(400, "Usuário não encontrado!");
+    }
+
+    if (user.favoriteStores && !user.favoriteStores.includes(storeId)) {
+      throw createHttpError(400, "Loja não consta na lista de favoritos!");
+    }
+
+    const indexToRemove = user.favoriteStores.indexOf(storeId);
+
+    if (indexToRemove !== -1) {
+      user.favoriteStores.splice(indexToRemove, 1);
+    }
+
     await user.save();
 
     res.sendStatus(200);

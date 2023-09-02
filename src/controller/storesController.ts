@@ -1,8 +1,11 @@
 import { RequestHandler } from "express";
 import StoreModel, { StoreCategories } from "../models/store";
 import createHttpError from "http-errors";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
+import { StoreService } from "../service/storeService";
+
+const storeService = new StoreService();
 
 export const setSessionStoreId: RequestHandler = async (req, res, next) => {
   try {
@@ -13,8 +16,8 @@ export const setSessionStoreId: RequestHandler = async (req, res, next) => {
 
     const store = await StoreModel.findById(storeId).exec();
 
-    if (store?.users.filter((u) => u.toString() === authenticatedUserId))
-      req.storeId = store._id.toString();
+    if (store?.users.filter((u) => u === authenticatedUserId))
+      req.storeId = store._id;
 
     res.sendStatus(200);
   } catch (error) {
@@ -31,7 +34,16 @@ export const getStores: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const getStore: RequestHandler = async (req, res, next) => {
+interface GetStoreParams {
+  storeId: Types.ObjectId;
+}
+
+export const getStore: RequestHandler<
+  GetStoreParams,
+  unknown,
+  unknown,
+  unknown
+> = async (req, res, next) => {
   try {
     const { storeId } = req.params;
 
@@ -39,7 +51,7 @@ export const getStore: RequestHandler = async (req, res, next) => {
       throw createHttpError(400, "Id inválido");
     }
 
-    const store = await StoreModel.findById(storeId).exec();
+    const store = await storeService.getStore(storeId);
 
     if (!store) {
       throw createHttpError(404, "Store não encontrada");
@@ -101,7 +113,7 @@ export const createStores: RequestHandler<
       category,
     });
 
-    req.storeId = newStore._id.toString();
+    req.storeId = newStore._id;
     res.status(201).json(newStore);
   } catch (error) {
     next(error);
@@ -116,6 +128,8 @@ interface UpdateStoreBody {
   name?: string;
   description?: string;
   image?: string;
+  category?: StoreCategories;
+  cnpj?: string;
 }
 
 export const updateStore: RequestHandler<
@@ -130,6 +144,8 @@ export const updateStore: RequestHandler<
       name: newName,
       description: newDescription,
       image: newImage,
+      cnpj: newCnpj,
+      category: newCategory,
     } = req.body;
 
     if (!mongoose.isValidObjectId(storeId)) {
@@ -149,6 +165,8 @@ export const updateStore: RequestHandler<
     store.name = newName;
     store.description = newDescription;
     store.image = newImage;
+    store.cnpj = store.cnpj ?? newCnpj;
+    store.category = newCategory ?? store.category;
 
     const updatedStore = await store.save();
 
@@ -198,6 +216,62 @@ export const getStoreByLoggedUser: RequestHandler = async (req, res, next) => {
     }
 
     res.status(200).json(store);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getStoreCategories: RequestHandler = async (req, res, next) => {
+  try {
+    const storeCategories = Object.values(StoreCategories);
+    res.status(200).json({ categories: storeCategories });
+  } catch (error) {
+    next(error);
+  }
+};
+interface ListStoresQuery {
+  category?: StoreCategories;
+  name?: string;
+  description?: string;
+  cnpj?: string;
+}
+
+interface ListStoresFilter {
+  name?: { $regex: string; $options: string };
+  description?: { $regex: string; $options: string };
+  cnpj?: { $regex: string; $options: string };
+  category?: StoreCategories;
+}
+
+export const listStores: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  ListStoresQuery
+> = async (req, res, next) => {
+  try {
+    const { category, name, description, cnpj } = req.query;
+
+    const filter: ListStoresFilter = {};
+
+    if (category) {
+      filter.category = category;
+    }
+
+    if (name) {
+      filter.name = { $regex: name, $options: "i" };
+    }
+
+    if (description) {
+      filter.description = { $regex: description, $options: "i" };
+    }
+
+    if (cnpj) {
+      filter.cnpj = { $regex: cnpj, $options: "i" };
+    }
+
+    const stores = await StoreModel.find(filter).exec();
+    res.status(200).json(stores);
   } catch (error) {
     next(error);
   }

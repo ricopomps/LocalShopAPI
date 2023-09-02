@@ -5,9 +5,10 @@ export enum ProductCategories {
   medicine = "Medicamento",
   eletronics = "Eletrônicos",
   fastFood = "Fast Food",
+  pets = "Pets",
 }
 
-const productSchema = new Schema(
+export const productSchema = new Schema(
   {
     storeId: { type: Schema.Types.ObjectId, required: true },
     name: { type: String, required: true },
@@ -18,7 +19,12 @@ const productSchema = new Schema(
       required: true,
       enum: Object.values(ProductCategories),
     },
-    price:{ type: Number, required: true }
+    price: { type: Number, required: true },
+    location: {
+      x: { type: Number },
+      y: { type: Number },
+    },
+    stock: { type: Number, required: true, default: 0 },
   },
   {
     timestamps: true,
