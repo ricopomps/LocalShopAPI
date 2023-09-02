@@ -1,8 +1,8 @@
 declare namespace Express {
   interface Request {
     user: string;
-    userId: string;
-    storeId: string;
+    userId: import("mongoose").Types.ObjectId;
+    storeId: import("mongoose").Types.ObjectId;
     userType: string;
   }
 }

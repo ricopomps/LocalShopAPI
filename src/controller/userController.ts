@@ -103,7 +103,7 @@ export const signUp: RequestHandler<
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    req.userId = newUser._id.toString();
+    req.userId = newUser._id;
 
     res.status(201).json({ user: newUser, accessToken });
   } catch (error) {
@@ -137,7 +137,7 @@ export const login: RequestHandler<
 
     if (!passwordMatch) throw createHttpError(401, "Credenciais inválidas");
 
-    req.userId = user._id.toString();
+    req.userId = user._id;
     res.status(201).json(user);
   } catch (error) {
     next(error);

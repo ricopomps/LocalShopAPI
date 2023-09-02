@@ -24,6 +24,7 @@ export const productSchema = new Schema(
       x: { type: Number },
       y: { type: Number },
     },
+    stock: { type: Number, required: true, default: 0 },
   },
   {
     timestamps: true,

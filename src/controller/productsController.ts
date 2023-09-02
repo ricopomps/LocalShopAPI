@@ -3,6 +3,9 @@ import ProductModel, { ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
 import mongoose, { ObjectId } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
+import { IProductService, ProductService } from "../service/productService";
+
+const productService: IProductService = new ProductService();
 
 interface GetProductsQuery {
   storeId: ObjectId;
@@ -36,15 +39,12 @@ export const getProducts: RequestHandler<
 export const getProduct: RequestHandler = async (req, res, next) => {
   try {
     const { productId } = req.params;
+
     if (!mongoose.isValidObjectId(productId)) {
       throw createHttpError(400, "Id inválido");
     }
 
-    const product = await ProductModel.findById(productId).exec();
-
-    if (!product) {
-      throw createHttpError(404, "Product não encontrada");
-    }
+    const product = await productService.getProduct(productId);
 
     res.status(200).json(product);
   } catch (error) {
@@ -88,7 +88,7 @@ export const createProducts: RequestHandler<
       throw createHttpError(400, "Precificação obrigatória!");
     }
 
-    const newProduct = await ProductModel.create({
+    const newProduct = await productService.createProduct({
       storeId: authenticatedStoreId,
       name,
       description,

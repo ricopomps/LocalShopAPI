@@ -1,13 +1,14 @@
 import createHttpError from "http-errors";
 import NotificationModel, { Notification } from "../models/notification";
+import { Types } from "mongoose";
 
 interface INotificationService {
-  createNotification(userId: string, text: string): Promise<void>;
-  getNotifications(userId: string): Promise<Notification[]>;
+  createNotification(userId: Types.ObjectId, text: string): Promise<void>;
+  getNotifications(userId: Types.ObjectId): Promise<Notification[]>;
   deleteNotification(notificationId: string): Promise<void>;
   readNotification(notificationId: string): Promise<void>;
-  readAllNotification(userId: string): Promise<void>;
-  removeAllNotifications(userId: string): Promise<void>;
+  readAllNotification(userId: Types.ObjectId): Promise<void>;
+  removeAllNotifications(userId: Types.ObjectId): Promise<void>;
 }
 
 export class NotificationService implements INotificationService {
@@ -17,14 +18,17 @@ export class NotificationService implements INotificationService {
     this.notificationRepository = NotificationModel;
   }
 
-  async createNotification(userId: string, text: string): Promise<void> {
+  async createNotification(
+    userId: Types.ObjectId,
+    text: string
+  ): Promise<void> {
     await this.notificationRepository.create({
       userId,
       text,
     });
   }
 
-  async getNotifications(userId: string): Promise<Notification[]> {
+  async getNotifications(userId: Types.ObjectId): Promise<Notification[]> {
     const notifications = await this.notificationRepository
       .find({ userId })
       .sort({ _id: "desc" })
@@ -40,19 +44,19 @@ export class NotificationService implements INotificationService {
     const notification = await this.notificationRepository.findById(
       notificationId
     );
-    if (!notification) throw createHttpError(404, "Note não encontrada");
+    if (!notification) throw createHttpError(404, "Notificação não encontrada");
     notification.read = true;
     await notification.save();
   }
 
-  async readAllNotification(userId: string): Promise<void> {
+  async readAllNotification(userId: Types.ObjectId): Promise<void> {
     await this.notificationRepository.updateMany(
       { userId },
       { $set: { read: true } }
     );
   }
 
-  async removeAllNotifications(userId: string): Promise<void> {
+  async removeAllNotifications(userId: Types.ObjectId): Promise<void> {
     await this.notificationRepository.deleteMany({ userId });
   }
 }

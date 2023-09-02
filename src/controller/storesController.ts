@@ -13,8 +13,8 @@ export const setSessionStoreId: RequestHandler = async (req, res, next) => {
 
     const store = await StoreModel.findById(storeId).exec();
 
-    if (store?.users.filter((u) => u.toString() === authenticatedUserId))
-      req.storeId = store._id.toString();
+    if (store?.users.filter((u) => u === authenticatedUserId))
+      req.storeId = store._id;
 
     res.sendStatus(200);
   } catch (error) {
@@ -101,7 +101,7 @@ export const createStores: RequestHandler<
       category,
     });
 
-    req.storeId = newStore._id.toString();
+    req.storeId = newStore._id;
     res.status(201).json(newStore);
   } catch (error) {
     next(error);
