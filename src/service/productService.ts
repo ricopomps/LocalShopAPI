@@ -1,6 +1,11 @@
 import { ClientSession, Types, startSession } from "mongoose";
-import ProductModel, { Product, ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
+import ProductModel, { Product, ProductCategories } from "../models/product";
+import {
+  INotificationService,
+  NotificationService,
+} from "./notificationService";
+import { IStoreService, StoreService } from "./storeService";
 
 export interface IProductService {
   getProduct(productId: string): Promise<Product>;
@@ -33,9 +38,13 @@ interface ProductData {
 }
 
 export class ProductService implements IProductService {
+  private notificationService: INotificationService;
+  private storeService: IStoreService;
   private productRepository;
 
   constructor() {
+    this.notificationService = new NotificationService();
+    this.storeService = new StoreService();
     this.productRepository = ProductModel;
   }
 
@@ -171,6 +180,25 @@ export class ProductService implements IProductService {
 
     product.stock -= stock;
     await product.save({ session });
+
+    if (stock < 20) {
+      try {
+        const store = await this.storeService.getStore(product.storeId);
+
+        store.users.forEach((user) => {
+          console.log(user);
+          this.notificationService.createNotification(
+            user,
+            `O estoque do produto: '${product.name}' está baixo! Apenas ${product.stock} produtos no estoque`
+          );
+        });
+      } catch (error) {
+        console.error(
+          "Ocorreu um erro ao enviar notificação de estoque baixo: ",
+          error
+        );
+      }
+    }
 
     return product;
   }

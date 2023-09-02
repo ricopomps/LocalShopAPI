@@ -25,6 +25,6 @@ const storeSchema = new Schema(
   }
 );
 
-type Store = InferSchemaType<typeof storeSchema>;
+export type Store = InferSchemaType<typeof storeSchema>;
 
 export default model<Store>("Store", storeSchema);

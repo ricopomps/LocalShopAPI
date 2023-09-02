@@ -2,7 +2,7 @@ import createHttpError from "http-errors";
 import NotificationModel, { Notification } from "../models/notification";
 import { Types } from "mongoose";
 
-interface INotificationService {
+export interface INotificationService {
   createNotification(userId: Types.ObjectId, text: string): Promise<void>;
   getNotifications(userId: Types.ObjectId): Promise<Notification[]>;
   deleteNotification(notificationId: string): Promise<void>;

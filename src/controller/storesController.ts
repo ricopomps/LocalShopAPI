@@ -1,8 +1,11 @@
 import { RequestHandler } from "express";
 import StoreModel, { StoreCategories } from "../models/store";
 import createHttpError from "http-errors";
-import mongoose, { ObjectId } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
+import { StoreService } from "../service/storeService";
+
+const storeService = new StoreService();
 
 export const setSessionStoreId: RequestHandler = async (req, res, next) => {
   try {
@@ -31,7 +34,16 @@ export const getStores: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const getStore: RequestHandler = async (req, res, next) => {
+interface GetStoreParams {
+  storeId: Types.ObjectId;
+}
+
+export const getStore: RequestHandler<
+  GetStoreParams,
+  unknown,
+  unknown,
+  unknown
+> = async (req, res, next) => {
   try {
     const { storeId } = req.params;
 
@@ -39,7 +51,7 @@ export const getStore: RequestHandler = async (req, res, next) => {
       throw createHttpError(400, "Id inválido");
     }
 
-    const store = await StoreModel.findById(storeId).exec();
+    const store = await storeService.getStore(storeId);
 
     if (!store) {
       throw createHttpError(404, "Store não encontrada");
