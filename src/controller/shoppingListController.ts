@@ -1,11 +1,13 @@
 import { RequestHandler } from "express";
-import mongoose, { ObjectId } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import createHttpError from "http-errors";
-import ShoppingListModel from "../models/shoppingList";
+import { ShoppingListItem } from "../models/shoppingList";
+import { ShoppingListService } from "../service/shoppingListService";
 
+const shoppingListService = new ShoppingListService();
 interface CreateShoppingListBody {
-  storeId?: ObjectId;
-  products?: { product: string; quantity: number }[];
+  storeId?: Types.ObjectId;
+  products?: ShoppingListItem[];
 }
 
 export const createShoppingList: RequestHandler<
@@ -29,26 +31,13 @@ export const createShoppingList: RequestHandler<
       );
     }
 
-    let shoppingList = await ShoppingListModel.findOne({
+    if (!storeId) throw createHttpError(400, "Loja inválida");
+
+    const shoppingList = await shoppingListService.createOrUpdateShoppingList(
       creatorId,
       storeId,
-    }).exec();
-
-    if (shoppingList) {
-      shoppingList.products = products.map((item) => {
-        return {
-          product: new mongoose.Types.ObjectId(item.product),
-          quantity: item.quantity,
-        };
-      });
-      await shoppingList.save();
-    } else {
-      shoppingList = await ShoppingListModel.create({
-        storeId,
-        creatorId,
-        products,
-      });
-    }
+      products
+    );
 
     res.status(200).json(shoppingList);
   } catch (error) {
@@ -57,15 +46,7 @@ export const createShoppingList: RequestHandler<
 };
 
 interface GetShoppingListsByUserParams {
-  storeId: string;
-}
-interface GetShoppingListsByUserFilter {
-  creatorId: mongoose.Types.ObjectId;
-  storeId?: mongoose.Types.ObjectId;
-}
-
-interface Filter {
-  $match: GetShoppingListsByUserFilter;
+  storeId: Types.ObjectId;
 }
 
 export const getShoppingListsByUser: RequestHandler<
@@ -86,81 +67,12 @@ export const getShoppingListsByUser: RequestHandler<
       throw createHttpError(400, "Id da loja inválido");
     }
 
-    const filter: Filter = {
-      $match: { creatorId: new mongoose.Types.ObjectId(userId) },
-    };
+    const shoppingList = await shoppingListService.getShoppingListsByUser(
+      userId,
+      storeId
+    );
 
-    if (storeId) {
-      filter.$match.storeId = new mongoose.Types.ObjectId(storeId);
-    }
-
-    const shoppingLists = await ShoppingListModel.aggregate([
-      filter,
-      {
-        $lookup: {
-          from: "users",
-          localField: "creatorId",
-          foreignField: "_id",
-          as: "creator",
-        },
-      },
-      {
-        $unwind: "$creator",
-      },
-      { $unset: "creator.password" },
-      {
-        $lookup: {
-          from: "stores",
-          localField: "storeId",
-          foreignField: "_id",
-          as: "store",
-        },
-      },
-      {
-        $unwind: "$store",
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "products.product",
-          foreignField: "_id",
-          as: "populatedProducts",
-        },
-      },
-      {
-        $addFields: {
-          products: {
-            $map: {
-              input: "$products",
-              as: "productObj",
-              in: {
-                product: {
-                  $arrayElemAt: [
-                    {
-                      $filter: {
-                        input: "$populatedProducts",
-                        as: "populatedProduct",
-                        cond: {
-                          $eq: [
-                            "$$populatedProduct._id",
-                            "$$productObj.product",
-                          ],
-                        },
-                      },
-                    },
-                    0,
-                  ],
-                },
-                quantity: "$$productObj.quantity",
-              },
-            },
-          },
-        },
-      },
-      { $unset: "populatedProducts" },
-    ]).exec();
-
-    res.status(200).json(shoppingLists[0]);
+    res.status(200).json(shoppingList);
   } catch (error) {
     next(error);
   }

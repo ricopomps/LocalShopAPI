@@ -1,4 +1,4 @@
-import { InferSchemaType, Schema, model } from "mongoose";
+import { InferSchemaType, Schema, Types, model } from "mongoose";
 
 const shoppingListSchema = new Schema(
   {
@@ -20,6 +20,11 @@ const shoppingListSchema = new Schema(
   }
 );
 
-type ShoppingList = InferSchemaType<typeof shoppingListSchema>;
+export type ShoppingList = InferSchemaType<typeof shoppingListSchema>;
+
+export interface ShoppingListItem {
+  product: Types.ObjectId;
+  quantity: number;
+}
 
 export default model<ShoppingList>("ShoppingList", shoppingListSchema);
