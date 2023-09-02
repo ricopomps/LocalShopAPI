@@ -6,6 +6,9 @@ import { assertIsDefined } from "../util/assertIsDefined";
 import mongoose from "mongoose";
 import env from "../util/validateEnv";
 import jwt from "jsonwebtoken";
+import { NotificationService } from "../service/notificationService";
+
+const notificationService = new NotificationService();
 
 export const getAuthenticatedUser: RequestHandler = async (req, res, next) => {
   try {
@@ -236,7 +239,10 @@ export const updateUser: RequestHandler<
     user.username = username ?? user.username;
     user.email = email ?? user.email;
     await user.save();
-
+    await notificationService.createNotification(
+      userId,
+      "Alterações realizadas no perfil"
+    );
     res.sendStatus(200);
   } catch (error) {
     next(error);
