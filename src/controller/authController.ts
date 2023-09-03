@@ -81,7 +81,6 @@ export const refresh: RequestHandler<
 > = async (req, res, next) => {
   try {
     const cookies = req.cookies;
-    console.log("cookies", cookies);
 
     if (!cookies.jwt) return res.status(401).json({ message: "Unauthorized" });
 

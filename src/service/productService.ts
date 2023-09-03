@@ -230,7 +230,6 @@ export class ProductService implements IProductService {
         const store = await this.storeService.getStore(product.storeId);
 
         store.users.forEach((user) => {
-          console.log(user);
           this.notificationService.createNotification(
             user,
             `O estoque do produto: '${product.name}' está baixo! Apenas ${product.stock} produtos no estoque`
