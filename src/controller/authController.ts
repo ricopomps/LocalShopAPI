@@ -50,7 +50,7 @@ export const auth: RequestHandler<
         },
       },
       env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "1h" }
     );
 
     const refreshToken = jwt.sign(
@@ -114,7 +114,7 @@ export const refresh: RequestHandler<
             },
           },
           env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "15m" }
+          { expiresIn: "1h" }
         );
 
         res.json({ accessToken });

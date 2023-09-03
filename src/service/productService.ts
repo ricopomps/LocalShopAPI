@@ -7,6 +7,7 @@ import {
 } from "./notificationService";
 import { IStoreService, StoreService } from "./storeService";
 import { IUserService, UserService } from "./userService";
+import { ListProductsByUserFilter } from "../controller/productsController";
 
 export interface IProductService {
   getProduct(productId: string): Promise<Product>;
@@ -22,6 +23,11 @@ export interface IProductService {
     stock: number,
     session?: ClientSession
   ): Promise<Product>;
+  listProducts(
+    filter: ListProductsByUserFilter,
+    userId: Types.ObjectId,
+    favorite?: boolean
+  ): Promise<Product[]>;
 }
 
 interface ProductData {
@@ -162,7 +168,7 @@ export class ProductService implements IProductService {
             `O seu produto favoritado '${
               updatedProduct.name
             }' entrou em promoção com ${updatedProduct.salePercentage?.toFixed(
-              2
+              0
             )}% de desconto!`
           )
         );
@@ -244,5 +250,19 @@ export class ProductService implements IProductService {
     }
 
     return product;
+  }
+
+  async listProducts(
+    filter: ListProductsByUserFilter,
+    userId: Types.ObjectId,
+    favorite?: boolean | undefined
+  ): Promise<Product[]> {
+    if (favorite) {
+      const favoriteStores = await this.userService.getFavoriteProducts(userId);
+      filter._id = { $in: favoriteStores };
+    }
+
+    const products = await this.productRepository.find(filter).exec();
+    return products;
   }
 }

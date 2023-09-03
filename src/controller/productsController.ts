@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import ProductModel, { ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
-import mongoose, { ObjectId } from "mongoose";
+import mongoose, { ObjectId, Types } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
 import { IProductService, ProductService } from "../service/productService";
 
@@ -259,9 +259,10 @@ interface ListProductsByUserQuery {
   category?: ProductCategories;
   priceFrom?: number;
   priceTo?: number;
+  favorite?: string;
 }
 
-interface ListProductsByUserFilter {
+export interface ListProductsByUserFilter {
   storeId: ObjectId;
   name?: { $regex: string; $options: string };
   category?: ProductCategories;
@@ -269,6 +270,7 @@ interface ListProductsByUserFilter {
     $gte?: number;
     $lte?: number;
   };
+  _id?: { $in: Types.ObjectId[] };
 }
 
 export const listProducts: RequestHandler<
@@ -285,7 +287,7 @@ export const listProducts: RequestHandler<
       throw createHttpError(400, "Loja não encontrada (ID inválido)!");
     }
 
-    const { productName, category } = req.query;
+    const { productName, category, favorite } = req.query;
 
     const priceFrom = Number(req.query.priceFrom);
     const priceTo = Number(req.query.priceTo);
@@ -315,8 +317,17 @@ export const listProducts: RequestHandler<
     if (priceTo) {
       filter = { ...filter, price: { ...filter.price, $lte: priceTo } };
     }
+    let jsonFavorite;
 
-    const products = await ProductModel.find(filter).exec();
+    if (favorite) jsonFavorite = JSON.parse(favorite);
+
+    if (jsonFavorite) filter = { ...filter, _id: { $in: [] } };
+
+    const products = await productService.listProducts(
+      filter,
+      req.userId,
+      jsonFavorite
+    );
 
     res.status(200).json(products);
   } catch (error) {
