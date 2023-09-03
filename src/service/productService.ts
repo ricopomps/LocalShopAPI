@@ -6,6 +6,7 @@ import {
   NotificationService,
 } from "./notificationService";
 import { IStoreService, StoreService } from "./storeService";
+import { IUserService, UserService } from "./userService";
 
 export interface IProductService {
   getProduct(productId: string): Promise<Product>;
@@ -43,11 +44,13 @@ interface ProductData {
 export class ProductService implements IProductService {
   private notificationService: INotificationService;
   private storeService: IStoreService;
+  private userService: IUserService;
   private productRepository;
 
   constructor() {
     this.notificationService = new NotificationService();
     this.storeService = new StoreService();
+    this.userService = new UserService();
     this.productRepository = ProductModel;
   }
 
@@ -149,6 +152,21 @@ export class ProductService implements IProductService {
       const updatedProduct = await existingProduct.save();
       await session.commitTransaction();
       session.endSession();
+      if (productData.sale) {
+        const usersToNotify = await this.userService.getUsersByFavoriteProduct(
+          updatedProduct._id
+        );
+        usersToNotify.forEach((user) =>
+          this.notificationService.createNotification(
+            user._id,
+            `O seu produto favoritado '${
+              updatedProduct.name
+            }' entrou em promoção com ${updatedProduct.salePercentage?.toFixed(
+              2
+            )}% de desconto!`
+          )
+        );
+      }
       return updatedProduct;
     } catch (error) {
       await session.abortTransaction();
