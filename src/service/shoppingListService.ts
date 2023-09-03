@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Types, startSession } from "mongoose";
 import ShoppingListModel, {
   ShoppingList,
   ShoppingListItem,
@@ -17,8 +17,9 @@ export interface IShoppingListService {
   ): Promise<ShoppingList | null>;
 
   finishShoppingList(
-    userId: Types.ObjectId,
-    storeId: Types.ObjectId
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
   ): Promise<void>;
 }
 
@@ -45,6 +46,8 @@ export class ShoppingListService implements IShoppingListService {
         storeId,
       })
       .exec();
+
+    //check if there is enough stock to create/update
 
     if (shoppingList) {
       shoppingList.products = products.map((item) => ({
@@ -149,7 +152,25 @@ export class ShoppingListService implements IShoppingListService {
     return shoppingLists[0] || null;
   }
 
-  async finishShoppingList(userId: Types.ObjectId, storeId: Types.ObjectId) {
-    return;
+  async finishShoppingList(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ) {
+    const session = await startSession();
+    session.startTransaction();
+    try {
+      await this.createOrUpdateShoppingList(creatorId, storeId, products);
+      //remove from stock the products
+      //call history
+      await this.shoppingListRepository
+        .findOneAndDelete({ creatorId, storeId })
+        .session(session);
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   }
 }
