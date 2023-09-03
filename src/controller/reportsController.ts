@@ -108,3 +108,58 @@ export const getProductsSoldReport: RequestHandler<
     next(error);
   }
 };
+
+export const getProductsByDate: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  GetReportQuery
+> = async (req, res, next) => {
+  try {
+    const storeId = req.storeId;
+    assertIsDefined(storeId);
+
+    const { startDate, endDate } = req.query;
+
+    const data = [
+      {
+        month: "jan",
+        values: [
+          {
+            label: "product1",
+            value: 10,
+          },
+          {
+            label: "product5",
+            value: 5,
+          },
+          {
+            label: "product3",
+            value: 20,
+          },
+        ],
+      },
+      {
+        month: "feb",
+        values: [
+          {
+            label: "product4",
+            value: 20,
+          },
+          {
+            label: "product5",
+            value: 30,
+          },
+          {
+            label: "product6",
+            value: 40,
+          },
+        ],
+      },
+    ];
+
+    res.status(200).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
