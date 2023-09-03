@@ -13,8 +13,13 @@ export interface IShoppingListService {
 
   getShoppingListsByUser(
     userId: Types.ObjectId,
-    storeId?: Types.ObjectId
+    storeId: Types.ObjectId
   ): Promise<ShoppingList | null>;
+
+  finishShoppingList(
+    userId: Types.ObjectId,
+    storeId: Types.ObjectId
+  ): Promise<void>;
 }
 
 interface GetShoppingListsByUserFilter {
@@ -64,15 +69,12 @@ export class ShoppingListService implements IShoppingListService {
 
   async getShoppingListsByUser(
     userId: Types.ObjectId,
-    storeId?: Types.ObjectId
+    storeId: Types.ObjectId
   ): Promise<ShoppingList | null> {
     const filter: GetShoppingListsByUserFilter = {
-      creatorId: new Types.ObjectId(userId),
+      creatorId: userId,
+      storeId: storeId,
     };
-
-    if (storeId) {
-      filter.storeId = new Types.ObjectId(storeId);
-    }
 
     const shoppingLists = await ShoppingListModel.aggregate([
       {
@@ -143,5 +145,9 @@ export class ShoppingListService implements IShoppingListService {
     ]).exec();
 
     return shoppingLists[0] || null;
+  }
+
+  async finishShoppingList(userId: Types.ObjectId, storeId: Types.ObjectId) {
+    return;
   }
 }

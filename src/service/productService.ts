@@ -80,35 +80,56 @@ export class ProductService implements IProductService {
       if (!existingProduct)
         throw createHttpError(404, "Produto não encontrado");
 
-      if (productData.name !== undefined) {
+      if (
+        productData.sale &&
+        productData.oldPrice &&
+        productData.price &&
+        productData.oldPrice < productData.price
+      )
+        throw createHttpError(
+          400,
+          "Não é possível cadastrar uma promoção com preço maior que o original"
+        );
+
+      if (productData.name) {
         existingProduct.name = productData.name;
       }
 
-      if (productData.description !== undefined) {
+      if (productData.description) {
         existingProduct.description = productData.description;
       }
 
-      if (productData.image !== undefined) {
+      if (productData.image) {
         existingProduct.image = productData.image;
       }
 
       if (
-        productData.category !== undefined &&
+        productData.category &&
         Object.values(ProductCategories).includes(productData.category)
       ) {
         existingProduct.category = productData.category;
       }
 
-      if (productData.price !== undefined) {
+      if (productData.price) {
         existingProduct.price = productData.price;
       }
 
-      if (productData.location !== undefined) {
+      if (productData.location) {
         existingProduct.location = productData.location;
       }
 
+      if (productData.sale !== undefined) {
+        existingProduct.sale = productData.sale;
+      }
+
+      if (productData.oldPrice) {
+        existingProduct.oldPrice = productData.oldPrice;
+      }
+
       if (productData.sale && productData.oldPrice && productData.price) {
-        existingProduct.salePercentage = ((productData.oldPrice - productData.price) / productData.oldPrice) * 100;
+        existingProduct.salePercentage =
+          ((productData.oldPrice - productData.price) / productData.oldPrice) *
+          100;
       } else {
         existingProduct.salePercentage = 0;
       }
