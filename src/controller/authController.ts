@@ -50,7 +50,7 @@ export const auth: RequestHandler<
         },
       },
       env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "15m" }
+      { expiresIn: "1h" }
     );
 
     const refreshToken = jwt.sign(
@@ -81,7 +81,6 @@ export const refresh: RequestHandler<
 > = async (req, res, next) => {
   try {
     const cookies = req.cookies;
-    console.log("cookies", cookies);
 
     if (!cookies.jwt) return res.status(401).json({ message: "Unauthorized" });
 
@@ -115,7 +114,7 @@ export const refresh: RequestHandler<
             },
           },
           env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "15m" }
+          { expiresIn: "1h" }
         );
 
         res.json({ accessToken });

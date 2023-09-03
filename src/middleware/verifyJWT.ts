@@ -4,7 +4,6 @@ import { RequestHandler } from "express";
 
 export const verifyJWT: RequestHandler = (req, res, next) => {
   const authHeader = req.headers.authorization || req.headers.Authorization;
-  console.log(authHeader);
   const header = authHeader?.toString();
 
   if (!header?.startsWith("Bearer ")) {
@@ -12,7 +11,7 @@ export const verifyJWT: RequestHandler = (req, res, next) => {
   }
 
   const token = header.split(" ")[1];
-  console.log("token", JSON.stringify(token));
+
   jwt.verify(token, env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ message: "Forbidden token" });
 

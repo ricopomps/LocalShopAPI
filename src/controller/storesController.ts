@@ -229,18 +229,20 @@ export const getStoreCategories: RequestHandler = async (req, res, next) => {
     next(error);
   }
 };
-interface ListStoresQuery {
+export interface ListStoresQuery {
   category?: StoreCategories;
   name?: string;
   description?: string;
   cnpj?: string;
+  favorite?: string;
 }
 
-interface ListStoresFilter {
+export interface ListStoresFilter {
   name?: { $regex: string; $options: string };
   description?: { $regex: string; $options: string };
   cnpj?: { $regex: string; $options: string };
   category?: StoreCategories;
+  _id?: { $in: Types.ObjectId[] };
 }
 
 export const listStores: RequestHandler<
@@ -250,7 +252,7 @@ export const listStores: RequestHandler<
   ListStoresQuery
 > = async (req, res, next) => {
   try {
-    const { category, name, description, cnpj } = req.query;
+    const { category, name, description, cnpj, favorite } = req.query;
 
     const filter: ListStoresFilter = {};
 
@@ -270,7 +272,15 @@ export const listStores: RequestHandler<
       filter.cnpj = { $regex: cnpj, $options: "i" };
     }
 
-    const stores = await StoreModel.find(filter).exec();
+    let jsonFavorite;
+
+    if (favorite) jsonFavorite = JSON.parse(favorite);
+
+    const stores = await storeService.listStores(
+      filter,
+      req.userId,
+      jsonFavorite
+    );
     res.status(200).json(stores);
   } catch (error) {
     next(error);

@@ -77,3 +77,39 @@ export const getShoppingListsByUser: RequestHandler<
     next(error);
   }
 };
+
+interface FinishShoppingListBody {
+  storeId?: Types.ObjectId;
+  products?: ShoppingListItem[];
+}
+
+export const finishShoppingList: RequestHandler<
+  unknown,
+  unknown,
+  FinishShoppingListBody,
+  unknown
+> = async (req, res, next) => {
+  try {
+    const creatorId = req.userId;
+    const { storeId, products } = req.body;
+
+    if (!mongoose.isValidObjectId(creatorId || storeId)) {
+      throw createHttpError(400, "Id inválido");
+    }
+
+    if (!products || products?.length == 0) {
+      throw createHttpError(
+        400,
+        "Não é possível finalizar uma lista de compras sem produtos"
+      );
+    }
+
+    if (!storeId) throw createHttpError(400, "Loja inválida");
+
+    await shoppingListService.finishShoppingList(creatorId, storeId, products);
+
+    res.sendStatus(201);
+  } catch (error) {
+    next(error);
+  }
+};

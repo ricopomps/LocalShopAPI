@@ -1,4 +1,4 @@
-import { InferSchemaType, Schema, model } from "mongoose";
+import { InferSchemaType, Schema, Types, model } from "mongoose";
 
 export enum UserType {
   shopper = "shopper",
@@ -30,6 +30,6 @@ const userSchema = new Schema({
   ],
 });
 
-export type User = InferSchemaType<typeof userSchema>;
+export type User = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId };
 
 export default model<User>("User", userSchema);

@@ -6,6 +6,8 @@ import {
   NotificationService,
 } from "./notificationService";
 import { IStoreService, StoreService } from "./storeService";
+import { IUserService, UserService } from "./userService";
+import { ListProductsByUserFilter } from "../controller/productsController";
 
 export interface IProductService {
   getProduct(productId: string): Promise<Product>;
@@ -21,6 +23,11 @@ export interface IProductService {
     stock: number,
     session?: ClientSession
   ): Promise<Product>;
+  listProducts(
+    filter: ListProductsByUserFilter,
+    userId: Types.ObjectId,
+    favorite?: boolean
+  ): Promise<Product[]>;
 }
 
 interface ProductData {
@@ -43,11 +50,13 @@ interface ProductData {
 export class ProductService implements IProductService {
   private notificationService: INotificationService;
   private storeService: IStoreService;
+  private userService: IUserService;
   private productRepository;
 
   constructor() {
     this.notificationService = new NotificationService();
     this.storeService = new StoreService();
+    this.userService = new UserService();
     this.productRepository = ProductModel;
   }
 
@@ -80,35 +89,56 @@ export class ProductService implements IProductService {
       if (!existingProduct)
         throw createHttpError(404, "Produto não encontrado");
 
-      if (productData.name !== undefined) {
+      if (
+        productData.sale &&
+        productData.oldPrice &&
+        productData.price &&
+        productData.oldPrice < productData.price
+      )
+        throw createHttpError(
+          400,
+          "Não é possível cadastrar uma promoção com preço maior que o original"
+        );
+
+      if (productData.name) {
         existingProduct.name = productData.name;
       }
 
-      if (productData.description !== undefined) {
+      if (productData.description) {
         existingProduct.description = productData.description;
       }
 
-      if (productData.image !== undefined) {
+      if (productData.image) {
         existingProduct.image = productData.image;
       }
 
       if (
-        productData.category !== undefined &&
+        productData.category &&
         Object.values(ProductCategories).includes(productData.category)
       ) {
         existingProduct.category = productData.category;
       }
 
-      if (productData.price !== undefined) {
+      if (productData.price) {
         existingProduct.price = productData.price;
       }
 
-      if (productData.location !== undefined) {
+      if (productData.location) {
         existingProduct.location = productData.location;
       }
 
+      if (productData.sale !== undefined) {
+        existingProduct.sale = productData.sale;
+      }
+
+      if (productData.oldPrice) {
+        existingProduct.oldPrice = productData.oldPrice;
+      }
+
       if (productData.sale && productData.oldPrice && productData.price) {
-        existingProduct.salePercentage = ((productData.oldPrice - productData.price) / productData.oldPrice) * 100;
+        existingProduct.salePercentage =
+          ((productData.oldPrice - productData.price) / productData.oldPrice) *
+          100;
       } else {
         existingProduct.salePercentage = 0;
       }
@@ -128,6 +158,21 @@ export class ProductService implements IProductService {
       const updatedProduct = await existingProduct.save();
       await session.commitTransaction();
       session.endSession();
+      if (productData.sale) {
+        const usersToNotify = await this.userService.getUsersByFavoriteProduct(
+          updatedProduct._id
+        );
+        usersToNotify.forEach((user) =>
+          this.notificationService.createNotification(
+            user._id,
+            `O seu produto favoritado '${
+              updatedProduct.name
+            }' entrou em promoção com ${updatedProduct.salePercentage?.toFixed(
+              0
+            )}% de desconto!`
+          )
+        );
+      }
       return updatedProduct;
     } catch (error) {
       await session.abortTransaction();
@@ -191,7 +236,6 @@ export class ProductService implements IProductService {
         const store = await this.storeService.getStore(product.storeId);
 
         store.users.forEach((user) => {
-          console.log(user);
           this.notificationService.createNotification(
             user,
             `O estoque do produto: '${product.name}' está baixo! Apenas ${product.stock} produtos no estoque`
@@ -206,5 +250,19 @@ export class ProductService implements IProductService {
     }
 
     return product;
+  }
+
+  async listProducts(
+    filter: ListProductsByUserFilter,
+    userId: Types.ObjectId,
+    favorite?: boolean | undefined
+  ): Promise<Product[]> {
+    if (favorite) {
+      const favoriteStores = await this.userService.getFavoriteProducts(userId);
+      filter._id = { $in: favoriteStores };
+    }
+
+    const products = await this.productRepository.find(filter).exec();
+    return products;
   }
 }
