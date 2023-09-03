@@ -11,6 +11,7 @@ import { ListProductsByUserFilter } from "../controller/productsController";
 
 export interface IProductService {
   getProduct(productId: string): Promise<Product>;
+  getProducts(productsIds: Types.ObjectId[]): Promise<Product[]>;
   createProduct(product: ProductData): Promise<Product>;
   updateProduct(productId: string, product: ProductData): Promise<Product>;
   addStock(
@@ -60,18 +61,26 @@ export class ProductService implements IProductService {
     this.productRepository = ProductModel;
   }
 
-  async createProduct(product: ProductData): Promise<Product> {
-    const newProduct = await this.productRepository.create(product);
-
-    return newProduct;
-  }
-
   async getProduct(productId: string): Promise<Product> {
     const product = await this.productRepository.findById(productId).exec();
 
     if (!product) throw createHttpError(404, "Produto não encontrado");
 
     return product;
+  }
+
+  async getProducts(productsIds: Types.ObjectId[]): Promise<Product[]> {
+    const products = await this.productRepository
+      .find({ _id: { $in: productsIds } })
+      .exec();
+
+    return products;
+  }
+
+  async createProduct(product: ProductData): Promise<Product> {
+    const newProduct = await this.productRepository.create(product);
+
+    return newProduct;
   }
 
   async updateProduct(
@@ -158,7 +167,7 @@ export class ProductService implements IProductService {
       const updatedProduct = await existingProduct.save();
       await session.commitTransaction();
       session.endSession();
-      if (productData.sale) {
+      if (productData.sale && productData.salePercentage) {
         const usersToNotify = await this.userService.getUsersByFavoriteProduct(
           updatedProduct._id
         );

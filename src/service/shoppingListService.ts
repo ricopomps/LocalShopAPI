@@ -3,6 +3,8 @@ import ShoppingListModel, {
   ShoppingList,
   ShoppingListItem,
 } from "../models/shoppingList";
+import { IProductService, ProductService } from "./productService";
+import createHttpError from "http-errors";
 
 export interface IShoppingListService {
   createOrUpdateShoppingList(
@@ -29,9 +31,11 @@ interface GetShoppingListsByUserFilter {
 }
 
 export class ShoppingListService implements IShoppingListService {
+  private productsService: IProductService;
   private shoppingListRepository;
 
   constructor() {
+    this.productsService = new ProductService();
     this.shoppingListRepository = ShoppingListModel;
   }
 
@@ -161,7 +165,28 @@ export class ShoppingListService implements IShoppingListService {
     session.startTransaction();
     try {
       await this.createOrUpdateShoppingList(creatorId, storeId, products);
-      //remove from stock the products
+
+      const productsInStock = await this.productsService.getProducts(
+        products.map((item) => item.product)
+      );
+
+      const removeStockPromises = products.map((product) => {
+        const productInStock = productsInStock.find((stockProduct) =>
+          stockProduct._id.equals(product.product)
+        );
+        if (productInStock) {
+          return this.productsService.removeStock(
+            productInStock._id.toString(),
+            product.quantity,
+            session
+          );
+        } else {
+          throw createHttpError(404, `O produto não está mais disponivel`);
+        }
+      });
+
+      await Promise.all(removeStockPromises);
+
       //call history
       await this.shoppingListRepository
         .findOneAndDelete({ creatorId, storeId })
