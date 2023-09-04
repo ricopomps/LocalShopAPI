@@ -3,6 +3,25 @@ import ShoppingListModel, {
   ShoppingList,
   ShoppingListItem,
 } from "../models/shoppingList";
+import { IProductService, ProductService } from "./productService";
+import createHttpError from "http-errors";
+import { Store } from "../models/store";
+import { User } from "../models/user";
+import { Product } from "../models/product";
+import {
+  IShoppingListHistoryService,
+  ShoppingListHistoryService,
+} from "./shoppingListHistoryService";
+
+export type PopulatedShoppingList = {
+  store: Store;
+  creator: User;
+  products: {
+    product: Product;
+    quantity: number;
+  }[] &
+    ShoppingList;
+};
 
 export interface IShoppingListService {
   createOrUpdateShoppingList(
@@ -14,7 +33,7 @@ export interface IShoppingListService {
   getShoppingListsByUser(
     userId: Types.ObjectId,
     storeId: Types.ObjectId
-  ): Promise<ShoppingList | null>;
+  ): Promise<PopulatedShoppingList | null>;
 
   finishShoppingList(
     creatorId: Types.ObjectId,
@@ -29,9 +48,13 @@ interface GetShoppingListsByUserFilter {
 }
 
 export class ShoppingListService implements IShoppingListService {
+  private productsService: IProductService;
+  private shoppingListHistoryService: IShoppingListHistoryService;
   private shoppingListRepository;
 
   constructor() {
+    this.productsService = new ProductService();
+    this.shoppingListHistoryService = new ShoppingListHistoryService();
     this.shoppingListRepository = ShoppingListModel;
   }
 
@@ -47,7 +70,24 @@ export class ShoppingListService implements IShoppingListService {
       })
       .exec();
 
-    //check if there is enough stock to create/update
+    const productsInStock = await this.productsService.getProducts(
+      products.map((item) => item.product)
+    );
+
+    products.forEach((product) => {
+      const productInStock = productsInStock.find((stockProduct) =>
+        stockProduct._id.equals(product.product)
+      );
+      if (productInStock) {
+        if (productInStock.stock < product.quantity)
+          throw createHttpError(
+            400,
+            `O produto '${productInStock.name}' não está mais em estoque (Estoque disponível: ${productInStock.stock})`
+          );
+      } else {
+        throw createHttpError(404, `O produto não está mais disponivel`);
+      }
+    });
 
     if (shoppingList) {
       shoppingList.products = products.map((item) => ({
@@ -73,7 +113,7 @@ export class ShoppingListService implements IShoppingListService {
   async getShoppingListsByUser(
     userId: Types.ObjectId,
     storeId: Types.ObjectId
-  ): Promise<ShoppingList | null> {
+  ): Promise<PopulatedShoppingList | null> {
     const filter: GetShoppingListsByUserFilter = {
       creatorId: new Types.ObjectId(userId),
       storeId: new Types.ObjectId(storeId),
@@ -161,8 +201,46 @@ export class ShoppingListService implements IShoppingListService {
     session.startTransaction();
     try {
       await this.createOrUpdateShoppingList(creatorId, storeId, products);
-      //remove from stock the products
-      //call history
+
+      const productsInStock = await this.productsService.getProducts(
+        products.map((item) => item.product)
+      );
+
+      const removeStockPromises = products.map((product) => {
+        const productInStock = productsInStock.find((stockProduct) =>
+          stockProduct._id.equals(product.product)
+        );
+        if (productInStock) {
+          if (productInStock.stock < product.quantity)
+            throw createHttpError(
+              400,
+              `O produto '${productInStock.name}' não está mais em estoque (Estoque disponível: ${productInStock.stock})`
+            );
+          return this.productsService.removeStock(
+            productInStock._id.toString(),
+            product.quantity,
+            session
+          );
+        } else {
+          throw createHttpError(404, `O produto não está mais disponivel`);
+        }
+      });
+
+      await Promise.all(removeStockPromises);
+
+      const shoppingList = await this.getShoppingListsByUser(
+        creatorId,
+        storeId
+      );
+
+      if (!shoppingList)
+        throw createHttpError(404, `Lista de compras não está mais disponível`);
+
+      await this.shoppingListHistoryService.createHistory(
+        shoppingList,
+        session
+      );
+
       await this.shoppingListRepository
         .findOneAndDelete({ creatorId, storeId })
         .session(session);
