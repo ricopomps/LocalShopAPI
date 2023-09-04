@@ -70,7 +70,24 @@ export class ShoppingListService implements IShoppingListService {
       })
       .exec();
 
-    //check if there is enough stock to create/update
+    const productsInStock = await this.productsService.getProducts(
+      products.map((item) => item.product)
+    );
+
+    products.forEach((product) => {
+      const productInStock = productsInStock.find((stockProduct) =>
+        stockProduct._id.equals(product.product)
+      );
+      if (productInStock) {
+        if (productInStock.stock < product.quantity)
+          throw createHttpError(
+            400,
+            `O produto '${productInStock.name}' não está mais em estoque (Estoque disponível: ${productInStock.stock})`
+          );
+      } else {
+        throw createHttpError(404, `O produto não está mais disponivel`);
+      }
+    });
 
     if (shoppingList) {
       shoppingList.products = products.map((item) => ({
@@ -194,6 +211,11 @@ export class ShoppingListService implements IShoppingListService {
           stockProduct._id.equals(product.product)
         );
         if (productInStock) {
+          if (productInStock.stock < product.quantity)
+            throw createHttpError(
+              400,
+              `O produto '${productInStock.name}' não está mais em estoque (Estoque disponível: ${productInStock.stock})`
+            );
           return this.productsService.removeStock(
             productInStock._id.toString(),
             product.quantity,
