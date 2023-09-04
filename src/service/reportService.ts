@@ -13,6 +13,11 @@ export interface IReportService {
     storeId: Types.ObjectId
   ): Promise<MultipleReportData[]>;
   getIncomeReport(startDate: Date, endDate: Date, storeId: Types.ObjectId): Promise<SingleReportData[]>;
+  getIncomeByProducts(
+    startDate: Date,
+    endDate: Date,
+    storeId: Types.ObjectId
+  ) : Promise<MultipleReportData[]>
 }
 
 interface SingleReportData {
@@ -60,6 +65,7 @@ async getSoldProductsReport(
           },
         })
         .exec();
+        
 
     const dataMonthSeparated = new Map<string, ShoppingListHistory[]>();
     rawData.forEach((history: ShoppingListHistory) => {
@@ -111,6 +117,7 @@ async getSoldProductsReport(
     return reportData;
   }
 
+
   async getIncomeReport(
     startDate: Date,
     endDate: Date,
@@ -148,6 +155,77 @@ async getSoldProductsReport(
       reportData.push({
         month,
         value,
+      });
+    });
+
+    return reportData;
+  }
+
+
+
+  async getIncomeByProducts(
+    startDate: Date,
+    endDate: Date,
+    storeId: Types.ObjectId
+  ): Promise<MultipleReportData[]> {
+    const rawData: ShoppingListHistory[] =
+      await this.shoppingListHistoryRepository
+        .find({
+          storeId,
+          createdAt: {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        })
+        .exec();
+
+        const dataMonthSeparated = new Map<string, ShoppingListHistory[]>();
+    rawData.forEach((history: ShoppingListHistory) => {
+      const createdAt = new Date(history.createdAt);
+
+      const monthKey = this.createMonthKey(createdAt);
+
+      if (dataMonthSeparated.has(monthKey)) {
+        dataMonthSeparated.get(monthKey)?.push(history);
+      } else {
+        dataMonthSeparated.set(monthKey, [history]);
+      }
+    });
+
+    const reportData: MultipleReportData[] = [];
+
+    dataMonthSeparated.forEach((value, month) => {
+      const mapOfProducts = new Map<string, number>();
+      const singularData: SingularValue[] = [];
+
+      value.forEach((history: ShoppingListHistory) => {
+        history.products.forEach((productItem) => {
+          if (productItem.product) {
+            const key = (productItem.product as Product).name;
+            const quantity = productItem.quantity;
+            const price = productItem.product.price;
+
+            const income = quantity * price;
+
+            if (mapOfProducts.has(key)) {
+              mapOfProducts.set(key, (mapOfProducts.get(key) ?? 0) + income);
+            } else {
+              mapOfProducts.set(key, income);
+            }
+          }
+        });
+      });
+
+      mapOfProducts.forEach((value, label) => {
+        singularData.push({
+          label,
+          value,
+        });
+      });
+
+      reportData.push({
+        month,
+        values: singularData,
       });
     });
 

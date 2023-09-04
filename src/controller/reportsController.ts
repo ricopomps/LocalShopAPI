@@ -72,3 +72,27 @@ export const getProductsSoldReport: RequestHandler<
     next(error);
   }
 };
+
+export const getIncomeByProducts: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  GetReportQuery
+> = async (req, res, next) => {
+  try {
+    const storeId = req.storeId;
+    assertIsDefined(storeId);
+
+    const { startDate, endDate } = req.query;
+
+    const data = await reportService.getIncomeByProducts(
+      startDate,
+      endDate,
+      storeId
+    );
+
+    res.status(200).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
