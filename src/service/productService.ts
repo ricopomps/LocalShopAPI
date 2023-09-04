@@ -27,7 +27,8 @@ export interface IProductService {
   listProducts(
     filter: ListProductsByUserFilter,
     userId: Types.ObjectId,
-    favorite?: boolean
+    favorite?: boolean,
+    sortOption?: ProductSort
   ): Promise<Product[]>;
 }
 
@@ -47,6 +48,20 @@ interface ProductData {
   salePercentage?: number;
   stock?: number;
 }
+
+export enum ProductSort {
+  PRICE_ASC = "Menor preço",
+  PRICE_DESC = "Maior preço",
+  NAME_ASC = "Alfabético",
+  NAME_DESC = "Alfabético invertido",
+  STOCK_ASC = "Mais estoque",
+  STOCK_DESC = "Menos estoque",
+  SALE_ASC = "Maior desconto",
+}
+
+type SortOptions = {
+  [key: string]: 1 | -1;
+};
 
 export class ProductService implements IProductService {
   private notificationService: INotificationService;
@@ -261,17 +276,52 @@ export class ProductService implements IProductService {
     return product;
   }
 
+  private getSort(option?: ProductSort): SortOptions | undefined {
+    if (!option) return;
+    const sortOptions: SortOptions = {};
+    switch (option) {
+      case ProductSort.PRICE_ASC:
+        sortOptions.price = 1;
+        break;
+      case ProductSort.PRICE_DESC:
+        sortOptions.price = -1;
+        break;
+      case ProductSort.NAME_ASC:
+        sortOptions.name = 1;
+        break;
+      case ProductSort.NAME_DESC:
+        sortOptions.name = -1;
+        break;
+      case ProductSort.STOCK_ASC:
+        sortOptions.stock = 1;
+        break;
+      case ProductSort.STOCK_DESC:
+        sortOptions.stock = -1;
+        break;
+      case ProductSort.SALE_ASC:
+        sortOptions.sale = 1;
+        break;
+      default:
+        break;
+    }
+    return sortOptions;
+  }
+
   async listProducts(
     filter: ListProductsByUserFilter,
     userId: Types.ObjectId,
-    favorite?: boolean | undefined
+    favorite?: boolean | undefined,
+    sortOption?: ProductSort
   ): Promise<Product[]> {
     if (favorite) {
       const favoriteStores = await this.userService.getFavoriteProducts(userId);
       filter._id = { $in: favoriteStores };
     }
 
-    const products = await this.productRepository.find(filter).exec();
+    const products = await this.productRepository
+      .find(filter)
+      .sort(this.getSort(sortOption))
+      .exec();
     return products;
   }
 }

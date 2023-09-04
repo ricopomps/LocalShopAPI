@@ -3,7 +3,11 @@ import ProductModel, { ProductCategories } from "../models/product";
 import createHttpError from "http-errors";
 import mongoose, { ObjectId, Types } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
-import { IProductService, ProductService } from "../service/productService";
+import {
+  IProductService,
+  ProductService,
+  ProductSort,
+} from "../service/productService";
 
 const productService: IProductService = new ProductService();
 
@@ -249,6 +253,15 @@ export const getProductCategories: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const getSortOptions: RequestHandler = async (req, res, next) => {
+  try {
+    const productsCategories = Object.values(ProductSort);
+    res.status(200).json({ sortOptions: productsCategories });
+  } catch (error) {
+    next(error);
+  }
+};
+
 interface ListProductsFromUserParams {
   storeId: ObjectId;
 }
@@ -260,6 +273,7 @@ interface ListProductsByUserQuery {
   priceFrom?: number;
   priceTo?: number;
   favorite?: string;
+  sort?: ProductSort;
 }
 
 export interface ListProductsByUserFilter {
@@ -287,7 +301,7 @@ export const listProducts: RequestHandler<
       throw createHttpError(400, "Loja não encontrada (ID inválido)!");
     }
 
-    const { productName, category, favorite } = req.query;
+    const { productName, category, favorite, sort } = req.query;
 
     const priceFrom = Number(req.query.priceFrom);
     const priceTo = Number(req.query.priceTo);
@@ -326,7 +340,8 @@ export const listProducts: RequestHandler<
     const products = await productService.listProducts(
       filter,
       req.userId,
-      jsonFavorite
+      jsonFavorite,
+      sort
     );
 
     res.status(200).json(products);
