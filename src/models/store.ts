@@ -1,4 +1,4 @@
-import { InferSchemaType, Schema, model } from "mongoose";
+import { InferSchemaType, Schema, Types, model } from "mongoose";
 
 export enum StoreCategories {
   market = "Mercado",
@@ -25,6 +25,8 @@ const storeSchema = new Schema(
   }
 );
 
-export type Store = InferSchemaType<typeof storeSchema>;
+export type Store = InferSchemaType<typeof storeSchema> & {
+  _id: Types.ObjectId;
+};
 
 export default model<Store>("Store", storeSchema);

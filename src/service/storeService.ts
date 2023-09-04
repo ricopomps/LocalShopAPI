@@ -16,6 +16,7 @@ export interface IStoreService {
 export class StoreService implements IStoreService {
   private storeRepository;
   private userService: IUserService;
+
   constructor() {
     this.storeRepository = StoreModel;
     this.userService = new UserService();

@@ -5,6 +5,23 @@ import ShoppingListModel, {
 } from "../models/shoppingList";
 import { IProductService, ProductService } from "./productService";
 import createHttpError from "http-errors";
+import { Store } from "../models/store";
+import { User } from "../models/user";
+import { Product } from "../models/product";
+import {
+  IShoppingListHistoryService,
+  ShoppingListHistoryService,
+} from "./shoppingListHistoryService";
+
+export type PopulatedShoppingList = {
+  store: Store;
+  creator: User;
+  products: {
+    product: Product;
+    quantity: number;
+  }[] &
+    ShoppingList;
+};
 
 export interface IShoppingListService {
   createOrUpdateShoppingList(
@@ -16,7 +33,7 @@ export interface IShoppingListService {
   getShoppingListsByUser(
     userId: Types.ObjectId,
     storeId: Types.ObjectId
-  ): Promise<ShoppingList | null>;
+  ): Promise<PopulatedShoppingList | null>;
 
   finishShoppingList(
     creatorId: Types.ObjectId,
@@ -32,10 +49,12 @@ interface GetShoppingListsByUserFilter {
 
 export class ShoppingListService implements IShoppingListService {
   private productsService: IProductService;
+  private shoppingListHistoryService: IShoppingListHistoryService;
   private shoppingListRepository;
 
   constructor() {
     this.productsService = new ProductService();
+    this.shoppingListHistoryService = new ShoppingListHistoryService();
     this.shoppingListRepository = ShoppingListModel;
   }
 
@@ -77,7 +96,7 @@ export class ShoppingListService implements IShoppingListService {
   async getShoppingListsByUser(
     userId: Types.ObjectId,
     storeId: Types.ObjectId
-  ): Promise<ShoppingList | null> {
+  ): Promise<PopulatedShoppingList | null> {
     const filter: GetShoppingListsByUserFilter = {
       creatorId: new Types.ObjectId(userId),
       storeId: new Types.ObjectId(storeId),
@@ -187,7 +206,19 @@ export class ShoppingListService implements IShoppingListService {
 
       await Promise.all(removeStockPromises);
 
-      //call history
+      const shoppingList = await this.getShoppingListsByUser(
+        creatorId,
+        storeId
+      );
+
+      if (!shoppingList)
+        throw createHttpError(404, `Lista de compras não está mais disponível`);
+
+      await this.shoppingListHistoryService.createHistory(
+        shoppingList,
+        session
+      );
+
       await this.shoppingListRepository
         .findOneAndDelete({ creatorId, storeId })
         .session(session);
