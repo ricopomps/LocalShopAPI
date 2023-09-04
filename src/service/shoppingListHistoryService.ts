@@ -1,12 +1,18 @@
-import { ClientSession } from "mongoose";
-import ShoppingListHistoryModel from "../models/shoppingListHistory";
+import { ClientSession, Types } from "mongoose";
+import ShoppingListHistoryModel, {
+  ShoppingListHistory,
+} from "../models/shoppingListHistory";
 import { PopulatedShoppingList } from "./shoppingListService";
+import createHttpError from "http-errors";
 
 export interface IShoppingListHistoryService {
   createHistory(
     shoppingList: PopulatedShoppingList,
     session: ClientSession
   ): Promise<void>;
+  getShoppingListHistory(
+    shoppingListHistoryId: Types.ObjectId
+  ): Promise<ShoppingListHistory>;
 }
 
 export class ShoppingListHistoryService implements IShoppingListHistoryService {
@@ -36,5 +42,17 @@ export class ShoppingListHistoryService implements IShoppingListHistoryService {
       ],
       { session }
     );
+  }
+
+  async getShoppingListHistory(
+    shoppingListHistoryId: Types.ObjectId
+  ): Promise<ShoppingListHistory> {
+    const shoppingListsHistory = await this.shoppingListHistoryRepository
+      .findById(shoppingListHistoryId)
+      .exec();
+
+    if (!shoppingListsHistory)
+      throw createHttpError(404, "Histórico não encontrado");
+    return shoppingListsHistory;
   }
 }

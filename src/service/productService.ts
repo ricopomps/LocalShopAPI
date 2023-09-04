@@ -182,26 +182,34 @@ export class ProductService implements IProductService {
       const updatedProduct = await existingProduct.save();
       await session.commitTransaction();
       session.endSession();
-      if (productData.sale && productData.salePercentage) {
-        const usersToNotify = await this.userService.getUsersByFavoriteProduct(
-          updatedProduct._id
-        );
-        usersToNotify.forEach((user) =>
-          this.notificationService.createNotification(
-            user._id,
-            `O seu produto favoritado '${
-              updatedProduct.name
-            }' entrou em promoção com ${updatedProduct.salePercentage?.toFixed(
-              0
-            )}% de desconto!`
-          )
-        );
+      if (productData.sale && updatedProduct.salePercentage) {
+        this.sendSaleNotification(updatedProduct);
       }
       return updatedProduct;
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
       throw error;
+    }
+  }
+
+  private async sendSaleNotification(updatedProduct: Product) {
+    try {
+      const usersToNotify = await this.userService.getUsersByFavoriteProduct(
+        updatedProduct._id
+      );
+      usersToNotify.forEach((user) =>
+        this.notificationService.createNotification(
+          user._id,
+          `O seu produto favoritado '${
+            updatedProduct.name
+          }' entrou em promoção com ${updatedProduct.salePercentage?.toFixed(
+            0
+          )}% de desconto!`
+        )
+      );
+    } catch (error) {
+      console.error("Erro ao enviar notificação de promoção: " + error);
     }
   }
 

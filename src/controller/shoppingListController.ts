@@ -3,6 +3,7 @@ import mongoose, { Types } from "mongoose";
 import createHttpError from "http-errors";
 import { ShoppingListItem } from "../models/shoppingList";
 import { ShoppingListService } from "../service/shoppingListService";
+import { assertIsDefined } from "../util/assertIsDefined";
 
 const shoppingListService = new ShoppingListService();
 interface CreateShoppingListBody {
@@ -109,6 +110,26 @@ export const finishShoppingList: RequestHandler<
     await shoppingListService.finishShoppingList(creatorId, storeId, products);
 
     res.sendStatus(201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+interface CopyHistoryListParams {
+  historyId: Types.ObjectId;
+}
+
+export const copyHistoryList: RequestHandler<
+  CopyHistoryListParams,
+  unknown,
+  unknown,
+  unknown
+> = async (req, res, next) => {
+  try {
+    const { historyId } = req.params;
+    assertIsDefined(historyId);
+    await shoppingListService.copyHistoryList(historyId);
+    res.sendStatus(200);
   } catch (error) {
     next(error);
   }

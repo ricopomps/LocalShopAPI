@@ -40,6 +40,8 @@ export interface IShoppingListService {
     storeId: Types.ObjectId,
     products: ShoppingListItem[]
   ): Promise<void>;
+
+  copyHistoryList(shoppingListHistoryId: Types.ObjectId): Promise<ShoppingList>;
 }
 
 interface GetShoppingListsByUserFilter {
@@ -90,20 +92,14 @@ export class ShoppingListService implements IShoppingListService {
     });
 
     if (shoppingList) {
-      shoppingList.products = products.map((item) => ({
-        product: new Types.ObjectId(item.product),
-        quantity: item.quantity,
-      }));
+      shoppingList.products = products;
 
       await shoppingList.save();
     } else {
       shoppingList = await this.shoppingListRepository.create({
         storeId,
         creatorId,
-        products: products.map((item) => ({
-          product: new Types.ObjectId(item.product),
-          quantity: item.quantity,
-        })),
+        products: products,
       });
     }
 
@@ -245,10 +241,36 @@ export class ShoppingListService implements IShoppingListService {
         .findOneAndDelete({ creatorId, storeId })
         .session(session);
       await session.commitTransaction();
+      session.endSession();
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
       throw error;
     }
+  }
+
+  async copyHistoryList(
+    shoppingListHistoryId: Types.ObjectId
+  ): Promise<ShoppingList> {
+    const history =
+      await this.shoppingListHistoryService.getShoppingListHistory(
+        shoppingListHistoryId
+      );
+
+    const productsItem = history.products.map((item): ShoppingListItem => {
+      if (!item.product) throw createHttpError(404, "Produto não encontrado ");
+      return {
+        product: (item.product as Product)._id,
+        quantity: item.quantity,
+      };
+    });
+
+    const shoppingList = await this.createOrUpdateShoppingList(
+      history.creatorId,
+      history.storeId,
+      productsItem
+    );
+
+    return shoppingList;
   }
 }

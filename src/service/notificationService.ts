@@ -27,7 +27,6 @@ export class NotificationService implements INotificationService {
       text,
     });
   }
-
   async getNotifications(userId: Types.ObjectId): Promise<Notification[]> {
     const notifications = await this.notificationRepository
       .find({ userId })

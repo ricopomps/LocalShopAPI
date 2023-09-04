@@ -55,7 +55,7 @@ interface GetShoppingListsHistoryByUserFilter {
   _id?: mongoose.Types.ObjectId;
 }
 
-interface Filter {
+export interface FilterHistory {
   $match: GetShoppingListsHistoryByUserFilter;
 }
 
@@ -77,7 +77,7 @@ export const getShoppingListsHistoryByUser: RequestHandler<
       throw createHttpError(400, "Id da loja inválido.");
     }
 
-    const filter: Filter = {
+    const filter: FilterHistory = {
       $match: { creatorId: new mongoose.Types.ObjectId(userId) },
     };
 
@@ -131,7 +131,7 @@ export const getAllShoppingListsHistoryByUser: RequestHandler<
       throw createHttpError(400, "Id do usuário inválido.");
     }
 
-    const filter: Filter = {
+    const filter: FilterHistory = {
       $match: { creatorId: new mongoose.Types.ObjectId(userId) },
     };
 
@@ -193,7 +193,7 @@ export const getShoppingListsHistory: RequestHandler<
       throw createHttpError(400, "Id do histórico inválido.");
     }
 
-    const filter: Filter = {
+    const filter: FilterHistory = {
       $match: {
         creatorId: new mongoose.Types.ObjectId(userId),
         _id: new mongoose.Types.ObjectId(shoppingListId),
