@@ -240,7 +240,7 @@ export class ProductService implements IProductService {
     product.stock -= stock;
     await product.save({ session });
 
-    if (stock < 20) {
+    if (product.stock < 20) {
       try {
         const store = await this.storeService.getStore(product.storeId);
 
