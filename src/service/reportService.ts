@@ -4,13 +4,15 @@ import ShoppingListHistoryModel, {
   ShoppingListHistory,
 } from "../models/shoppingListHistory";
 import { ptBR } from "date-fns/locale";
+import { Types } from "mongoose";
 
 export interface IReportService {
   getSoldProductsReport(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    storeId: Types.ObjectId
   ): Promise<MultipleReportData[]>;
-  getIncomeReport(startDate: Date, endDate: Date): Promise<SingleReportData[]>;
+  getIncomeReport(startDate: Date, endDate: Date, storeId: Types.ObjectId): Promise<SingleReportData[]>;
 }
 
 interface SingleReportData {
@@ -35,103 +37,89 @@ export class ReportService implements IReportService {
     this.shoppingListHistoryRepository = ShoppingListHistoryModel;
   }
 
-  //   async getSoldProductsReport(startDate: Date, endDate: Date) {
-  //     const rawData = await this.shoppingListHistoryRepository
-  //       .find({
-  //         createdAt: {
-  //           $gte: startDate,
-  //           $lte: endDate,
-  //         },
-  //       })
-  //       .exec();
+  private createMonthKey(creationDate: Date) {
+    const monthKey = `${format(
+      creationDate,
+      "MMM", { locale: ptBR }
+    )}/${creationDate.getFullYear()}`;
+    return monthKey;
+  }
 
-  //     const data = rawData.map((history) => {
-  //       return {};
-  //     });
-
-  //     return [];
-  //   }
-  async getSoldProductsReport(
+async getSoldProductsReport(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    storeId: Types.ObjectId
   ): Promise<MultipleReportData[]> {
     const rawData: ShoppingListHistory[] =
       await this.shoppingListHistoryRepository
         .find({
+          storeId,
           createdAt: {
             $gte: startDate,
             $lte: endDate,
           },
         })
-        // .populate("products.product") // Populate the 'product' field in 'products' array
         .exec();
 
-    const dataMonthSeparated = new Map<string, number>();
-
+    const dataMonthSeparated = new Map<string, ShoppingListHistory[]>();
     rawData.forEach((history: ShoppingListHistory) => {
       const createdAt = new Date(history.createdAt);
-      //   const monthKey = `${createdAt.getFullYear()}-${(createdAt.getMonth() + 1)
-      //     .toString()
-      //     .padStart(2, "0")}`;
 
-      const monthKey = `${format(createdAt, "MMM")}/${createdAt.getFullYear()}`;
+      const monthKey = this.createMonthKey(createdAt);
 
       if (dataMonthSeparated.has(monthKey)) {
-        dataMonthSeparated.set(
-          monthKey,
-          dataMonthSeparated.get(monthKey) ?? 0 + history.totalValue
-        );
+        dataMonthSeparated.get(monthKey)?.push(history);
       } else {
-        dataMonthSeparated.set(monthKey, history.totalValue);
+        dataMonthSeparated.set(monthKey, [history]);
       }
     });
 
-    const productSoldMap = new Map<string, number>();
+    const reportData: MultipleReportData[] = [];
 
-    rawData.forEach((history) => {
-      history.products.forEach((productData) => {
-        if (productData.product) {
-          const productId = (productData.product as Product)._id.toString();
-          const quantitySold = productData.quantity;
+    dataMonthSeparated.forEach((value, month) => {
+      const mapOfProducts = new Map<string, number>();
+      const singularData: SingularValue[] = [];
 
-          if (productSoldMap.has(productId)) {
-            productSoldMap.set(
-              productId,
-              productSoldMap.get(productId) ?? 0 + quantitySold
-            );
-          } else {
-            productSoldMap.set(productId, quantitySold);
+      value.forEach((history: ShoppingListHistory) => {
+        history.products.forEach((productItem) => {
+          if (productItem.product) {
+            const key = (productItem.product as Product).name;
+            const quantity = productItem.quantity;
+
+            if (mapOfProducts.has(key)) {
+              mapOfProducts.set(key, (mapOfProducts.get(key) ?? 0) + quantity);
+            } else {
+              mapOfProducts.set(key, quantity);
+            }
           }
-        }
+        });
+      });
+
+      mapOfProducts.forEach((value, label) => {
+        singularData.push({
+          label,
+          value,
+        });
+      });
+
+      reportData.push({
+        month,
+        values: singularData,
       });
     });
 
-    // const reportData: SingleReportData[] = [];
-    const reportData: MultipleReportData[] = [];
-
-    // // Convert the map into an array of SingleReportData
-    // productSoldMap.forEach((unitsSold, productId) => {
-    //   const product = await Product.findById(productId); // Get the product details
-    //   if (product) {
-    //     reportData.push({
-    //       month: product.name, // You can use the product name as the month
-    //       value: unitsSold,
-    //     });
-    //   }
-    // });
-    console.log("rawData", rawData);
-    console.log("productSoldMap", productSoldMap);
-    console.log("dataMonthSeparated", dataMonthSeparated);
     return reportData;
   }
 
   async getIncomeReport(
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    storeId: Types.ObjectId
   ): Promise<SingleReportData[]> {
     const rawData: ShoppingListHistory[] =
       await this.shoppingListHistoryRepository
         .find({
+          storeId,
           createdAt: {
             $gte: startDate,
             $lte: endDate,
@@ -142,10 +130,7 @@ export class ReportService implements IReportService {
     const dataMonthSeparated = new Map<string, number>();
 
     rawData.forEach((history: ShoppingListHistory) => {
-      const createdAt = new Date(history.createdAt);
-      const monthKey = `${format(createdAt, "MMM", {
-        locale: ptBR,
-      })}/${createdAt.getFullYear()}`;
+      const monthKey = this.createMonthKey(history.createdAt);
 
       if (dataMonthSeparated.has(monthKey)) {
         dataMonthSeparated.set(
