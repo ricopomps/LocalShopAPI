@@ -31,7 +31,7 @@ export const createShoppingListHistory: RequestHandler<
     }
 
     let totalValue = 0;
-    products.forEach(p => totalValue += p.product.price * p.quantity);
+    products.forEach((p) => (totalValue += p.product.price * p.quantity));
 
     await ShoppingListHistoryModel.create({
       storeId,
@@ -108,7 +108,57 @@ export const getShoppingListsHistoryByUser: RequestHandler<
       },
       {
         $unwind: "$store",
-      }
+      },
+    ]).exec();
+
+    res.status(200).json(shoppingListsHistory);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllShoppingListsHistoryByUser: RequestHandler<
+  GetShoppingListsHistoryByUserParams,
+  unknown,
+  unknown,
+  unknown
+> = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw createHttpError(400, "Id do usuário inválido.");
+    }
+
+    const filter: Filter = {
+      $match: { creatorId: new mongoose.Types.ObjectId(userId) },
+    };
+
+    const shoppingListsHistory = await ShoppingListHistoryModel.aggregate([
+      filter,
+      {
+        $lookup: {
+          from: "users",
+          localField: "creatorId",
+          foreignField: "_id",
+          as: "creator",
+        },
+      },
+      {
+        $unwind: "$creator",
+      },
+      { $unset: "creator.password" },
+      {
+        $lookup: {
+          from: "stores",
+          localField: "storeId",
+          foreignField: "_id",
+          as: "store",
+        },
+      },
+      {
+        $unwind: "$store",
+      },
     ]).exec();
 
     res.status(200).json(shoppingListsHistory);

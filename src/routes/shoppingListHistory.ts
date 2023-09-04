@@ -3,6 +3,7 @@ import * as ShoppingListHistoryController from "../controller/shoppingListHistor
 
 const router = express.Router();
 
+router.get("/", ShoppingListHistoryController.getAllShoppingListsHistoryByUser);
 router.get(
   "/:storeId",
   ShoppingListHistoryController.getShoppingListsHistoryByUser
