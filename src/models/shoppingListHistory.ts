@@ -18,7 +18,9 @@ const shoppingListHistorySchema = new Schema(
   }
 );
 
-type ShoppingListHistory = InferSchemaType<typeof shoppingListHistorySchema>;
+export type ShoppingListHistory = InferSchemaType<
+  typeof shoppingListHistorySchema
+>;
 
 export default model<ShoppingListHistory>(
   "ShoppingListHistory",

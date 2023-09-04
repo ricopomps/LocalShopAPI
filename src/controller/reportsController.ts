@@ -1,5 +1,37 @@
 import { RequestHandler } from "express";
 import { assertIsDefined } from "../util/assertIsDefined";
+import { ReportService } from "../service/reportService";
+
+const reportService = new ReportService();
+export const getIncomeReport: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  GetReportQuery
+> = async (req, res, next) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const data = await reportService.getIncomeReport(startDate, endDate);
+    res.status(200).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSoldProductsReport: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  GetReportQuery
+> = async (req, res, next) => {
+  try {
+    const { startDate, endDate } = req.query;
+    await reportService.getSoldProductsReport(startDate, endDate);
+    res.sendStatus(200);
+  } catch (error) {
+    next(error);
+  }
+};
 
 interface GetReportQuery {
   startDate: Date;
