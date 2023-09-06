@@ -7,9 +7,10 @@ import TokenModel from "../models/token";
 import env from "../util/validateEnv";
 import jwt from "jsonwebtoken";
 import { EmailService } from "../service/emailService";
-import { OAuth2Client } from "google-auth-library";
+import { AuthService, IAuthService } from "../service/authService";
 
 const emailService = new EmailService();
+const authService: IAuthService = new AuthService();
 
 interface LoginBody {
   username?: string;
@@ -235,23 +236,8 @@ export const googleAuthRequest: RequestHandler = async (req, res, next) => {
 
     const { userType } = req.body;
 
-    const redirectUrl = "http://localhost:3000";
-
-    const oAuth2Client = new OAuth2Client(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_SECRET_KEY,
-      redirectUrl
-    );
-
-    const authorizeUrl = oAuth2Client.generateAuthUrl({
-      access_type: "offline",
-      scope:
-        "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email openid",
-      prompt: "consent",
-      state: userType,
-    });
-    console.log(authorizeUrl);
-    res.status(200).json({ url: authorizeUrl });
+    const { authorizedUrl } = await authService.googleAuthRequest(userType);
+    res.status(200).json({ url: authorizedUrl });
   } catch (error) {
     next(error);
   }
@@ -259,7 +245,6 @@ export const googleAuthRequest: RequestHandler = async (req, res, next) => {
 const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
   const existingUser = await UserModel.findOne({ email: data.email }).exec();
   if (existingUser) {
-    console.log(existingUser, data.sub);
     const identificationMatch = await bcrypt.compare(
       data.sub,
       existingUser.identification
@@ -301,25 +286,8 @@ export const googleAuth: RequestHandler<
 > = async (req, res, next) => {
   try {
     const { code, userType } = req.query;
-    const redirectUrl = "http://localhost:3000";
 
-    const oAuth2Client = new OAuth2Client(
-      env.GOOGLE_CLIENT_ID,
-      env.GOOGLE_SECRET_KEY,
-      redirectUrl
-    );
-
-    const token = await oAuth2Client.getToken(code);
-    await oAuth2Client.setCredentials(token.tokens);
-    console.log("tokens acquired");
-    const user = oAuth2Client.credentials;
-    console.log("credentiasl", user);
-
-    const response = await fetch(
-      `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${user.access_token}`
-    );
-    const data = await response.json();
-    console.log("data", data);
+    const data = await authService.googleAuth(code);
 
     const loggedUser = await getOrCreateGoogleUser(data, userType);
     const accessToken = jwt.sign(

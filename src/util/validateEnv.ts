@@ -16,4 +16,5 @@ export default cleanEnv(process.env, {
   EMAIL_PASS: str(),
   GOOGLE_CLIENT_ID: str(),
   GOOGLE_SECRET_KEY: str(),
+  GOOGLE_REDIRECT_URL: str(),
 });
