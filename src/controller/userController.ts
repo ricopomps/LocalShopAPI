@@ -32,6 +32,49 @@ interface SignUpBody {
   userType?: UserType;
 }
 
+function validateCPF(cpf: string) {
+  cpf = cpf.replace(/[^\d]/g, "");
+
+  if (cpf.length !== 11) {
+    throw createHttpError(400, "Tamanho do CPF inválido!");
+  }
+
+  if (/^(\d)\1+$/.test(cpf)) {
+    return false;
+  }
+
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cpf.charAt(i)) * (10 - i);
+  }
+  let mod = sum % 11;
+  const firstDigit = mod < 2 ? 0 : 11 - mod;
+
+  sum = 0;
+
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cpf.charAt(i)) * (11 - i);
+  }
+
+  mod = sum % 11;
+  const secondDigit = mod < 2 ? 0 : 11 - mod;
+
+  if (
+    parseInt(cpf.charAt(9)) !== firstDigit ||
+    parseInt(cpf.charAt(10)) !== secondDigit
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function validateEmail(email: string){
+  const emailRegex = /^\w+([.-]?\w+)@\w+([.-]?\w+)(.\w{2,3})+$/;
+
+  return emailRegex.test(email);
+}
+
 export const signUp: RequestHandler<
   unknown,
   unknown,
@@ -56,13 +99,24 @@ export const signUp: RequestHandler<
     if (existingUsername)
       throw createHttpError(409, "Nome do usuário já existe");
 
+    if(!validateEmail(email)) {
+      throw createHttpError(400, "Email inválido!");
+    }
+
     const existingEmail = await UserModel.findOne({ email }).exec();
 
     if (existingEmail) throw createHttpError(409, "Email já cadastrado");
 
     const existingCpf = await UserModel.findOne({ cpf }).exec();
 
+    if (!validateCPF(cpf)) {
+      throw createHttpError(400, "CPF inválido!");
+    }
+
     if (existingCpf) throw createHttpError(400, "CPF já cadastrado");
+
+    if (passwordRaw.length < 4)
+      throw createHttpError(400, "A senha requer pelo menos 4 caracteres!");
 
     if (confirmedPassword !== passwordRaw) {
       throw createHttpError(400, "Senhas não coincidem!");
