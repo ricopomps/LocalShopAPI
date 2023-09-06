@@ -81,7 +81,10 @@ export const createProducts: RequestHandler<
 
     const sale = Boolean(req.body.sale);
     const price = Number(req.body.price);
-    const oldPrice = Number(req.body.oldPrice);
+    let oldPrice
+
+    if (req.body.oldPrice) oldPrice = Number(req.body.oldPrice);
+    else oldPrice = 0;
 
     let salePercentage;
 
