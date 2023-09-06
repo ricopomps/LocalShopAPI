@@ -1,14 +1,16 @@
 import { RequestHandler } from "express";
 import createHttpError from "http-errors";
 import bcrypt from "bcrypt";
-import UserModel from "../models/user";
+import UserModel, { UserType } from "../models/user";
 import StoreModel from "../models/store";
 import TokenModel from "../models/token";
 import env from "../util/validateEnv";
 import jwt from "jsonwebtoken";
 import { EmailService } from "../service/emailService";
+import { AuthService, IAuthService } from "../service/authService";
 
 const emailService = new EmailService();
+const authService: IAuthService = new AuthService();
 
 interface LoginBody {
   username?: string;
@@ -223,6 +225,99 @@ export const changePassword: RequestHandler<
     await TokenModel.findByIdAndDelete(token).exec();
 
     res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const googleAuthRequest: RequestHandler = async (req, res, next) => {
+  try {
+    res.header("Referrer-Policy", "no-referrer-when-downgrade");
+
+    const { userType } = req.body;
+
+    const { authorizedUrl } = await authService.googleAuthRequest(userType);
+    res.status(200).json({ url: authorizedUrl });
+  } catch (error) {
+    next(error);
+  }
+};
+const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
+  const existingUser = await UserModel.findOne({ email: data.email }).exec();
+  if (existingUser) {
+    const identificationMatch = await bcrypt.compare(
+      data.sub,
+      existingUser.identification
+    );
+    if (!identificationMatch)
+      throw createHttpError(
+        401,
+        "Usuário não tem permissão para acessar o sistema"
+      );
+    return existingUser;
+  } else {
+    if (!userType)
+      throw createHttpError(
+        401,
+        "Usuário não foi cadastrado ainda, vá para a tela de cadastro!"
+      ); // also check if valid UserType
+    const hashedIdentification = await bcrypt.hash(data.sub, 10);
+
+    const newUser = await UserModel.create({
+      username: data.name,
+      email: data.email,
+      userType,
+      identification: hashedIdentification,
+    });
+
+    return newUser;
+  }
+};
+interface GoogleAuthQuery {
+  code: string;
+  userType: UserType;
+}
+
+export const googleAuth: RequestHandler<
+  unknown,
+  unknown,
+  unknown,
+  GoogleAuthQuery
+> = async (req, res, next) => {
+  try {
+    const { code, userType } = req.query;
+
+    const data = await authService.googleAuth(code);
+
+    const loggedUser = await getOrCreateGoogleUser(data, userType);
+    const accessToken = jwt.sign(
+      {
+        UserInfo: {
+          username: loggedUser.username,
+          userId: loggedUser._id,
+          userType: loggedUser.userType,
+        },
+      },
+      env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    const refreshToken = jwt.sign(
+      { username: loggedUser.username, userId: loggedUser._id },
+      env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("jwt", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    req.userId = loggedUser._id;
+
+    res.status(201).json({ user: loggedUser, accessToken });
   } catch (error) {
     next(error);
   }
