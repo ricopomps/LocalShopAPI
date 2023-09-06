@@ -81,10 +81,10 @@ export const createProducts: RequestHandler<
 
     const sale = Boolean(req.body.sale);
     const price = Number(req.body.price);
-    let oldPrice
+
+    let oldPrice = 0;
 
     if (req.body.oldPrice) oldPrice = Number(req.body.oldPrice);
-    else oldPrice = 0;
 
     let salePercentage;
 
@@ -193,17 +193,6 @@ export const updateProduct: RequestHandler<
       oldPrice: newOldPrice,
       stock: newStock,
     };
-
-    if (
-      newCategory &&
-      !Object.values(ProductCategories).includes(newCategory)
-    ) {
-      throw createHttpError(400, "Categoria inválida!");
-    }
-
-    if (!newPrice) {
-      throw createHttpError(400, "Precificação inválida!");
-    }
 
     const updatedProduct = await productService.updateProduct(
       productId,
