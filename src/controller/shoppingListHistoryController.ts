@@ -137,6 +137,7 @@ export const getAllShoppingListsHistoryByUser: RequestHandler<
 
     const shoppingListsHistory = await ShoppingListHistoryModel.aggregate([
       filter,
+      { $sort: { _id: -1 } },
       {
         $lookup: {
           from: "users",
@@ -202,6 +203,7 @@ export const getShoppingListsHistory: RequestHandler<
 
     const shoppingListsHistory = await ShoppingListHistoryModel.aggregate([
       filter,
+      { $sort: { _id: 1 } },
       {
         $lookup: {
           from: "users",
