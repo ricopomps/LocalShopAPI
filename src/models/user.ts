@@ -28,7 +28,7 @@ const userSchema = new Schema({
       ref: "Store",
     },
   ],
-  identification: { type: String, required: false },
+  identification: { type: String, required: false, select: false },
 });
 
 export type User = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId };
