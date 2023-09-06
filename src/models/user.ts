@@ -8,8 +8,8 @@ export enum UserType {
 const userSchema = new Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true, select: false },
-  password: { type: String, required: true, select: false },
-  cpf: { type: String, required: true, unique: true, select: false },
+  password: { type: String, required: false, select: false },
+  cpf: { type: String, required: false, unique: true, select: false },
   userType: {
     type: String,
     required: true,
@@ -28,6 +28,7 @@ const userSchema = new Schema({
       ref: "Store",
     },
   ],
+  identification: { type: String, required: false },
 });
 
 export type User = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId };
