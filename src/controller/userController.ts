@@ -52,14 +52,17 @@ function validateCPF(cpf: string) {
 
   sum = 0;
 
-  for(let i = 0; i < 9; i++) {
+  for (let i = 0; i < 9; i++) {
     sum += parseInt(cpf.charAt(i)) * (11 - i);
   }
 
   mod = sum % 11;
   const secondDigit = mod < 2 ? 0 : 11 - mod;
 
-  if(parseInt(cpf.charAt(9)) !== firstDigit || parseInt(cpf.charAt(10)) !== secondDigit) {
+  if (
+    parseInt(cpf.charAt(9)) !== firstDigit ||
+    parseInt(cpf.charAt(10)) !== secondDigit
+  ) {
     return false;
   }
 
@@ -90,17 +93,31 @@ export const signUp: RequestHandler<
     if (existingUsername)
       throw createHttpError(409, "Nome do usuário já existe");
 
+    if (
+      !/^(?=.*@(gmail\.com|hotmail\.com|outlook\.com|icloud\.com|ufrpe\.br|yahoo\.com))/.test(
+        email
+      )
+    ) {
+      throw createHttpError(
+        400,
+        "Email inválido. Por favor, utilize um e-mail com um domínio válido!"
+      );
+    }
+
     const existingEmail = await UserModel.findOne({ email }).exec();
 
     if (existingEmail) throw createHttpError(409, "Email já cadastrado");
 
     const existingCpf = await UserModel.findOne({ cpf }).exec();
 
-    if(!validateCPF(cpf)){
+    if (!validateCPF(cpf)) {
       throw createHttpError(400, "CPF inválido!");
     }
 
     if (existingCpf) throw createHttpError(400, "CPF já cadastrado");
+
+    if (passwordRaw.length < 4)
+      throw createHttpError(400, "A senha requer pelo menos 4 caracteres!");
 
     if (confirmedPassword !== passwordRaw) {
       throw createHttpError(400, "Senhas não coincidem!");
