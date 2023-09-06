@@ -301,10 +301,10 @@ export class ProductService implements IProductService {
         sortOptions.name = -1;
         break;
       case ProductSort.STOCK_ASC:
-        sortOptions.stock = 1;
+        sortOptions.stock = -1;
         break;
       case ProductSort.STOCK_DESC:
-        sortOptions.stock = -1;
+        sortOptions.stock = 1;
         break;
       case ProductSort.SALE_ASC:
         sortOptions.sale = 1;
