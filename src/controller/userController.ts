@@ -69,7 +69,7 @@ function validateCPF(cpf: string) {
   return true;
 }
 
-function validateEmail(email: string){
+function validateEmail(email: string) {
   const emailRegex = /^\w+([.-]?\w+)@\w+([.-]?\w+)(.\w{2,3})+$/;
 
   return emailRegex.test(email);
@@ -99,7 +99,7 @@ export const signUp: RequestHandler<
     if (existingUsername)
       throw createHttpError(409, "Nome do usuário já existe");
 
-    if(!validateEmail(email)) {
+    if (!validateEmail(email)) {
       throw createHttpError(400, "Email inválido!");
     }
 
@@ -273,6 +273,7 @@ export const favoriteStores: RequestHandler = async (req, res, next) => {
 interface UpdateUserBody {
   username?: string;
   email?: string;
+  image?: string;
 }
 
 export const updateUser: RequestHandler<
@@ -288,10 +289,11 @@ export const updateUser: RequestHandler<
     const user = await UserModel.findById(userId).exec();
     if (!user) throw createHttpError(404, "Usuário não encontrado!");
 
-    const { username, email } = req.body;
+    const { username, email, image } = req.body;
 
     user.username = username ?? user.username;
     user.email = email ?? user.email;
+    user.image = image ?? user.image;
     await user.save();
     await notificationService.createNotification(
       userId,

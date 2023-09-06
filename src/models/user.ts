@@ -29,6 +29,7 @@ const userSchema = new Schema({
     },
   ],
   identification: { type: String, required: false, select: false },
+  image: { type: String },
 });
 
 export type User = InferSchemaType<typeof userSchema> & { _id: Types.ObjectId };

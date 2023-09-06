@@ -244,7 +244,7 @@ export const googleAuthRequest: RequestHandler = async (req, res, next) => {
 };
 const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
   const existingUser = await UserModel.findOne({ email: data.email })
-    .select("+identification")
+    .select("+identification +email")
     .exec();
   if (existingUser) {
     console.log(existingUser, data);
@@ -257,7 +257,7 @@ const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
         401,
         "Usuário não tem permissão para acessar o sistema"
       );
-    return existingUser;
+    return { ...existingUser.toObject(), googleUser: true };
   } else {
     if (!userType)
       throw createHttpError(
@@ -271,9 +271,10 @@ const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
       email: data.email,
       userType,
       identification: hashedIdentification,
+      image: data.picture,
     });
 
-    return newUser;
+    return { ...newUser.toObject(), googleUser: true };
   }
 };
 interface GoogleAuthQuery {
@@ -293,6 +294,7 @@ export const googleAuth: RequestHandler<
     const data = await authService.googleAuth(code);
 
     const loggedUser = await getOrCreateGoogleUser(data, userType);
+
     const accessToken = jwt.sign(
       {
         UserInfo: {
