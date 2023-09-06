@@ -69,6 +69,12 @@ function validateCPF(cpf: string) {
   return true;
 }
 
+function validateEmail(email: string){
+  const emailRegex = /^\w+([.-]?\w+)@\w+([.-]?\w+)(.\w{2,3})+$/;
+
+  return emailRegex.test(email);
+}
+
 export const signUp: RequestHandler<
   unknown,
   unknown,
@@ -93,7 +99,7 @@ export const signUp: RequestHandler<
     if (existingUsername)
       throw createHttpError(409, "Nome do usuário já existe");
 
-    if (!/^\w+([.-]?\w+)@\w+([.-]?\w+)(.\w{2,3})+$/.test(email)) {
+    if(!validateEmail(email)) {
       throw createHttpError(400, "Email inválido!");
     }
 
