@@ -93,15 +93,8 @@ export const signUp: RequestHandler<
     if (existingUsername)
       throw createHttpError(409, "Nome do usuário já existe");
 
-    if (
-      !/^(?=.*@(gmail\.com|hotmail\.com|outlook\.com|icloud\.com|ufrpe\.br|yahoo\.com))/.test(
-        email
-      )
-    ) {
-      throw createHttpError(
-        400,
-        "Email inválido. Por favor, utilize um e-mail com um domínio válido!"
-      );
+    if (!/^\w+([.-]?\w+)@\w+([.-]?\w+)(.\w{2,3})+$/.test(email)) {
+      throw createHttpError(400, "Email inválido!");
     }
 
     const existingEmail = await UserModel.findOne({ email }).exec();
