@@ -243,8 +243,11 @@ export const googleAuthRequest: RequestHandler = async (req, res, next) => {
   }
 };
 const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
-  const existingUser = await UserModel.findOne({ email: data.email }).exec();
+  const existingUser = await UserModel.findOne({ email: data.email })
+    .select("+identification")
+    .exec();
   if (existingUser) {
+    console.log(existingUser, data);
     const identificationMatch = await bcrypt.compare(
       data.sub,
       existingUser.identification
