@@ -12,6 +12,12 @@ import {
   IShoppingListHistoryService,
   ShoppingListHistoryService,
 } from "./shoppingListHistoryService";
+import {
+  CellCoordinates,
+  IPathService,
+  Path,
+  PathService,
+} from "./pathService";
 
 export type PopulatedShoppingList = {
   store: Store;
@@ -42,6 +48,12 @@ export interface IShoppingListService {
   ): Promise<void>;
 
   copyHistoryList(shoppingListHistoryId: Types.ObjectId): Promise<ShoppingList>;
+
+  getShoppingListShortestPath(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ): Promise<CellCoordinates[][]>;
 }
 
 interface GetShoppingListsByUserFilter {
@@ -52,11 +64,13 @@ interface GetShoppingListsByUserFilter {
 export class ShoppingListService implements IShoppingListService {
   private productsService: IProductService;
   private shoppingListHistoryService: IShoppingListHistoryService;
+  private pathService: IPathService;
   private shoppingListRepository;
 
   constructor() {
     this.productsService = new ProductService();
     this.shoppingListHistoryService = new ShoppingListHistoryService();
+    this.pathService = new PathService();
     this.shoppingListRepository = ShoppingListModel;
   }
 
@@ -272,5 +286,21 @@ export class ShoppingListService implements IShoppingListService {
     );
 
     return shoppingList;
+  }
+
+  async getShoppingListShortestPath(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ): Promise<CellCoordinates[][]> {
+    await this.createOrUpdateShoppingList(creatorId, storeId, products);
+    const shoppingList = await this.getShoppingListsByUser(creatorId, storeId);
+    if (!shoppingList)
+      throw createHttpError(
+        404,
+        "Não foi possível encontrar a lista de compras"
+      );
+    const paths = await this.pathService.calculatePath(storeId, shoppingList);
+    return paths;
   }
 }

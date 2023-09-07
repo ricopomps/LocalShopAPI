@@ -1,6 +1,7 @@
 import { InferSchemaType, Schema, model } from "mongoose";
 
 export enum MapCellTypes {
+  entrance = "Entrada",
   shelf = "Prateleira",
   fridge = "Frios",
   checkoutCounter = "Caixa",
@@ -12,8 +13,8 @@ const mapSchema = new Schema(
     storeId: { type: Schema.Types.ObjectId, ref: "Store" },
     items: [
       {
-        x: { type: Number },
-        y: { type: Number },
+        x: { type: Number, required: true },
+        y: { type: Number, required: true },
         type: {
           type: String,
           enum: Object.values(MapCellTypes),
@@ -26,6 +27,6 @@ const mapSchema = new Schema(
   }
 );
 
-type Map = InferSchemaType<typeof mapSchema>;
+export type Map = InferSchemaType<typeof mapSchema>;
 
 export default model<Map>("Map", mapSchema);
