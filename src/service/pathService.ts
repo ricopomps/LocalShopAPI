@@ -8,6 +8,7 @@ export interface CellCoordinates {
   x: number;
   y: number;
   type?: string;
+  productId?: Types.ObjectId;
 }
 
 export interface Path {
@@ -168,7 +169,6 @@ export class PathService implements IPathService {
     const coordinates = map?.items;
     if (!coordinates) throw createHttpError(404, "Mapa sem locais");
     const entrance = this.findEntrance(map as Map);
-    console.log(entrance);
 
     const grid = new pathfinding.Grid(10, 10);
 
@@ -176,27 +176,30 @@ export class PathService implements IPathService {
       if (cell.type !== MapCellTypes.entrance)
         grid.setWalkableAt(cell.x, cell.y, false);
     });
-    console.log(coordinates);
-    console.log(grid);
+
     const finder = new pathfinding.AStarFinder({
       diagonalMovement: DiagonalMovement.OnlyWhenNoObstacles,
     });
+
     const entranceNode = entrance;
     const shelfNodes = shoppingList.products
-      .map((product) => product.product.location)
-      .filter((v) => v !== undefined) as { x: number; y: number }[];
-    // const shelfNodes = [
-    //   { x: 6, y: 5 },
-    //   { x: 4, y: 8 },
-    //   { x: 9, y: 6 },
-    // ];
+      .map((product) => {
+        return {
+          ...product.product.location,
+          productId: product.product._id,
+        };
+      })
+      .filter((v) => v !== undefined) as CellCoordinates[];
 
     const shelfNodesWalkable = shelfNodes
-      .map((node) =>
-        this.findNearestAccessiblePoint(grid, 0, 0, node.x, node.y)
-      )
+      .map((node) => {
+        return {
+          ...this.findNearestAccessiblePoint(grid, 0, 0, node.x, node.y),
+          productId: node.productId,
+        };
+      })
       .filter((point) => point !== null);
-    console.log("shelfNodesWalkable", shelfNodesWalkable);
+
     let start = entranceNode;
     const result = this.calculateShortestPath(
       grid,
@@ -206,7 +209,6 @@ export class PathService implements IPathService {
     );
 
     const shortestPaths = result.map((shelfNode: any) => {
-      console.log("shelfNode", shelfNode);
       const gridBackup = grid.clone();
       const path = finder.findPath(
         start.x,
@@ -216,16 +218,18 @@ export class PathService implements IPathService {
         gridBackup
       );
       start = shelfNode;
-      return path;
+      return { path: path, productId: shelfNode.productId };
     });
 
-    console.log("shortestPaths", shortestPaths);
     const formattedPaths = shortestPaths.map((path) => {
-      return path.map((node) => ({ x: node[0], y: node[1] }));
-    });
+      const formattedPath = path.path.map((node) => ({
+        x: node[0],
+        y: node[1],
+        productId: path.productId,
+      }));
 
-    console.log("formattedPaths", formattedPaths);
-    console.log("shortestPaths", shortestPaths);
+      return formattedPath;
+    });
 
     return formattedPaths;
   }
