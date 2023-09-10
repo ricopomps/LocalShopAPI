@@ -100,7 +100,7 @@ export class PathService implements IPathService {
     return location;
   }
 
-  private generatePermutations(arr: any) {
+  private generatePermutations(arr: CellCoordinates[]) {
     const permutations: any[] = [];
 
     const permute = (arr: any, m = []) => {
@@ -123,7 +123,8 @@ export class PathService implements IPathService {
     grid: pathfinding.Grid,
     finder: pathfinding.Finder,
     entranceNode: CellCoordinates,
-    shelfNodes: CellCoordinates[]
+    shelfNodes: CellCoordinates[],
+    returnTrip?: boolean
   ): CellCoordinates[] {
     let shortestPath = null;
     let shortestLength = Infinity;
@@ -152,9 +153,30 @@ export class PathService implements IPathService {
         }
       }
 
-      if (totalLength < shortestLength) {
-        shortestLength = totalLength;
-        shortestPath = permutation;
+      if (returnTrip) {
+        const returnTrip = finder.findPath(
+          startNode.x,
+          startNode.y,
+          entranceNode.x,
+          entranceNode.y,
+          grid.clone()
+        );
+
+        if (returnTrip.length > 0) {
+          totalLength += returnTrip.length;
+        } else {
+          totalLength = Infinity;
+        }
+
+        if (totalLength < shortestLength) {
+          shortestLength = totalLength;
+          shortestPath = permutation.concat([{ ...entranceNode }]);
+        }
+      } else {
+        if (totalLength < shortestLength) {
+          shortestLength = totalLength;
+          shortestPath = permutation;
+        }
       }
     }
 
@@ -205,7 +227,8 @@ export class PathService implements IPathService {
       grid,
       finder,
       entranceNode,
-      shelfNodesWalkable
+      shelfNodesWalkable,
+      true
     );
 
     const shortestPaths = result.map((shelfNode: any) => {
