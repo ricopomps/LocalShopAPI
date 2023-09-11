@@ -295,6 +295,15 @@ export class ShoppingListService implements IShoppingListService {
   ): Promise<CellCoordinates[][]> {
     await this.createOrUpdateShoppingList(creatorId, storeId, products);
     const shoppingList = await this.getShoppingListsByUser(creatorId, storeId);
+
+    shoppingList?.products.forEach((item) => {
+      if (!item.product.location)
+        throw createHttpError(
+          404,
+          `O produto ${item.product.name} não possui localização cadastrada, favor remova ele da lista.`
+        );
+    });
+
     if (!shoppingList)
       throw createHttpError(
         404,
