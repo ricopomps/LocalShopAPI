@@ -1,8 +1,10 @@
 import { RequestHandler } from "express";
 import StoreModel, { StoreCategories } from "../models/store";
+import jwt from "jsonwebtoken";
 import createHttpError from "http-errors";
 import mongoose, { Types } from "mongoose";
 import { assertIsDefined } from "../util/assertIsDefined";
+import env from "../util/validateEnv";
 import { StoreService } from "../service/storeService";
 
 const storeService = new StoreService();
@@ -200,7 +202,23 @@ export const deleteStore: RequestHandler = async (req, res, next) => {
 
 export const getStoreByLoggedUser: RequestHandler = async (req, res, next) => {
   try {
-    const authenticatedUserId = req.userId;
+    let authenticatedUserId = req.userId;
+    if (!authenticatedUserId) {
+      const cookies = req.cookies;
+      const refreshToken = cookies.jwt;
+      if (!cookies?.jwt)
+        return res.status(401).json({ message: "Unauthorized" });
+      jwt.verify(
+        refreshToken,
+        env.REFRESH_TOKEN_SECRET,
+        {},
+        async (err, decoded: any) => {
+          if (err) return res.status(403).json({ message: "Forbidden" });
+          authenticatedUserId = decoded?.userId;
+        }
+      );
+    }
+
     assertIsDefined(authenticatedUserId);
 
     if (!mongoose.isValidObjectId(authenticatedUserId)) {

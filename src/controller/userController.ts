@@ -141,7 +141,7 @@ export const signUp: RequestHandler<
         },
       },
       env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "15m" }
     );
 
     const refreshToken = jwt.sign(
@@ -185,7 +185,8 @@ export const login: RequestHandler<
       .select("+password +email")
       .exec();
 
-    if (!user) throw createHttpError(401, "Credenciais inválidas");
+    if (!user || !user.password)
+      throw createHttpError(401, "Credenciais inválidas");
 
     const passwordMatch = await bcrypt.compare(password, user.password);
 

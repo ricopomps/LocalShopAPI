@@ -32,7 +32,8 @@ export const auth: RequestHandler<
       .select("+password +email +cpf")
       .exec();
 
-    if (!user) throw createHttpError(401, "Credenciais inválidas");
+    if (!user || !user.password)
+      throw createHttpError(401, "Credenciais inválidas");
 
     const passwordMatch = await bcrypt.compare(password, user.password);
 
@@ -52,7 +53,7 @@ export const auth: RequestHandler<
         },
       },
       env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "15m" }
     );
 
     const refreshToken = jwt.sign(
@@ -69,7 +70,7 @@ export const auth: RequestHandler<
     });
 
     const { password: passwordUser, ...safeUser } = user.toObject();
-    res.status(201).json({ user: safeUser, accessToken });
+    res.status(201).json({ user: { ...safeUser, store }, accessToken });
   } catch (error) {
     next(error);
   }
@@ -97,7 +98,9 @@ export const refresh: RequestHandler<
 
         const foundUser = await UserModel.findOne({
           _id: decoded?.userId,
-        }).exec();
+        })
+          .select("+email +cpf")
+          .exec();
 
         if (!foundUser)
           return res.status(401).json({ message: "Unauthorized" });
@@ -116,10 +119,10 @@ export const refresh: RequestHandler<
             },
           },
           env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "1h" }
+          { expiresIn: "15m" }
         );
 
-        res.json({ accessToken });
+        res.json({ user: { ...foundUser.toObject(), store }, accessToken });
       }
     );
   } catch (error) {
@@ -246,8 +249,7 @@ const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
   const existingUser = await UserModel.findOne({ email: data.email })
     .select("+identification +email")
     .exec();
-  if (existingUser) {
-    console.log(existingUser, data);
+  if (existingUser && existingUser.identification) {
     const identificationMatch = await bcrypt.compare(
       data.sub,
       existingUser.identification
@@ -257,7 +259,15 @@ const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
         401,
         "Usuário não tem permissão para acessar o sistema"
       );
-    return { ...existingUser.toObject(), googleUser: true };
+
+    const store = await StoreModel.findOne({
+      users: { $in: [existingUser._id] },
+    }).exec();
+    return {
+      ...existingUser.toObject(),
+      googleUser: true,
+      store: store,
+    };
   } else {
     if (!userType)
       throw createHttpError(
@@ -274,7 +284,7 @@ const getOrCreateGoogleUser = async (data: any, userType?: UserType) => {
       image: data.picture,
     });
 
-    return { ...newUser.toObject(), googleUser: true };
+    return { ...newUser.toObject(), googleUser: true, store: undefined };
   }
 };
 interface GoogleAuthQuery {
@@ -300,11 +310,12 @@ export const googleAuth: RequestHandler<
         UserInfo: {
           username: loggedUser.username,
           userId: loggedUser._id,
+          storeId: loggedUser.store?._id,
           userType: loggedUser.userType,
         },
       },
       env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "15m" }
     );
 
     const refreshToken = jwt.sign(
