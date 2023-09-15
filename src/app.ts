@@ -32,6 +32,7 @@ app.use(
       "https://local-shop-web.vercel.app",
       "https://local-shop-web-git-master-ricopomps.vercel.app",
       "https://local-shop-qgtkoqzbv-ricopomps.vercel.app",
+      "/.vercel.app$/",
     ],
     methods: ["POST", "PUT", "PATCH", "GET", "OPTIONS", "HEAD", "DELETE"],
   })
