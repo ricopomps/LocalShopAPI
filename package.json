@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "API for managment of appointments for an orthodontic clinic",
   "main": "dist/server.js",
+  "engines": {
+    "node": "18"
+  },
   "scripts": {
     "dev": "nodemon src/server.ts",
     "start": "node dist/server.js",
