@@ -30,6 +30,7 @@ app.use(
       "http://localhost:3000",
       env.FRONT_URL,
       "https://local-shop-web.vercel.app",
+      "https://local-shop-fsqv2acfp-ricopomps.vercel.app",
       "https://local-shop-web-git-master-ricopomps.vercel.app",
       "https://local-shop-qgtkoqzbv-ricopomps.vercel.app",
       "/.vercel.app$/",
