@@ -26,14 +26,7 @@ app.use(morgan("dev"));
 app.use(
   cors({
     credentials: true,
-    origin: [
-      "http://localhost:3000",
-      env.FRONT_URL,
-      "https://local-shop-web.vercel.app",
-      "https://local-shop-web-git-master-ricopomps.vercel.app",
-      "https://local-shop-qgtkoqzbv-ricopomps.vercel.app",
-      "/.vercel.app$/",
-    ],
+    origin: true,
     methods: ["POST", "PUT", "PATCH", "GET", "OPTIONS", "HEAD", "DELETE"],
   })
 );
