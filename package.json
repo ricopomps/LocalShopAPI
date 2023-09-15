@@ -1,5 +1,5 @@
 {
-  "name": "appointmentmanagerapi",
+  "name": "localshopapi",
   "version": "1.0.0",
   "description": "API for managment of appointments for an orthodontic clinic",
   "main": "dist/server.js",
