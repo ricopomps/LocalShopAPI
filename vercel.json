@@ -10,10 +10,7 @@
     {
       "src": "(.*)",
       "dest": "src/server.ts",
-      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      "headers": {
-        "Access-Control-Allow-Origin": "https://local-shop-web.vercel.app"
-      }
+      "methods": ["POST", "PUT", "PATCH", "GET", "OPTIONS", "HEAD", "DELETE"]
     }
   ]
 }
