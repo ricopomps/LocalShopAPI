@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
-import mongoose, { Types } from "mongoose";
 import createHttpError from "http-errors";
+import mongoose, { Types } from "mongoose";
 import { ShoppingListItem } from "../models/shoppingList";
 import { ShoppingListService } from "../service/shoppingListService";
 import { assertIsDefined } from "../util/assertIsDefined";
@@ -136,6 +136,72 @@ export const copyHistoryList: RequestHandler<
 };
 
 export const getShoppingListShortestPath: RequestHandler<
+  unknown,
+  unknown,
+  CreateShoppingListBody,
+  unknown
+> = async (req, res, next) => {
+  try {
+    const creatorId = req.userId;
+    const { storeId, products } = req.body;
+    assertIsDefined(storeId);
+
+    if (!mongoose.isValidObjectId(creatorId || storeId)) {
+      throw createHttpError(400, "Id inválido");
+    }
+
+    if (!products || products?.length == 0) {
+      throw createHttpError(
+        400,
+        "Não é possível criar uma lista de compras sem produtos"
+      );
+    }
+
+    const paths = await shoppingListService.getShoppingListShortestPath(
+      creatorId,
+      storeId,
+      products
+    );
+    res.status(200).json(paths);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getShoppingListShortestPathProfundidade: RequestHandler<
+  unknown,
+  unknown,
+  CreateShoppingListBody,
+  unknown
+> = async (req, res, next) => {
+  try {
+    const creatorId = req.userId;
+    const { storeId, products } = req.body;
+    assertIsDefined(storeId);
+
+    if (!mongoose.isValidObjectId(creatorId || storeId)) {
+      throw createHttpError(400, "Id inválido");
+    }
+
+    if (!products || products?.length == 0) {
+      throw createHttpError(
+        400,
+        "Não é possível criar uma lista de compras sem produtos"
+      );
+    }
+
+    const paths = await shoppingListService.getShoppingListShortestPath(
+      creatorId,
+      storeId,
+      products
+    );
+    res.status(200).json(paths);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getShoppingListShortestPathLargura: RequestHandler<
   unknown,
   unknown,
   CreateShoppingListBody,

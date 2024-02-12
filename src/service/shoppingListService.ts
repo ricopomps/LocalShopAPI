@@ -1,23 +1,18 @@
+import createHttpError from "http-errors";
 import { Types, startSession } from "mongoose";
+import { Product } from "../models/product";
 import ShoppingListModel, {
   ShoppingList,
   ShoppingListItem,
 } from "../models/shoppingList";
-import { IProductService, ProductService } from "./productService";
-import createHttpError from "http-errors";
 import { Store } from "../models/store";
 import { User } from "../models/user";
-import { Product } from "../models/product";
+import { CellCoordinates, IPathService, PathService } from "./pathService";
+import { IProductService, ProductService } from "./productService";
 import {
   IShoppingListHistoryService,
   ShoppingListHistoryService,
 } from "./shoppingListHistoryService";
-import {
-  CellCoordinates,
-  IPathService,
-  Path,
-  PathService,
-} from "./pathService";
 
 export type PopulatedShoppingList = {
   store: Store;
@@ -50,6 +45,18 @@ export interface IShoppingListService {
   copyHistoryList(shoppingListHistoryId: Types.ObjectId): Promise<ShoppingList>;
 
   getShoppingListShortestPath(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ): Promise<CellCoordinates[][]>;
+
+  getShoppingListShortestPathProfundidade(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ): Promise<CellCoordinates[][]>;
+
+  getShoppingListShortestPathLargura(
     creatorId: Types.ObjectId,
     storeId: Types.ObjectId,
     products: ShoppingListItem[]
@@ -310,6 +317,62 @@ export class ShoppingListService implements IShoppingListService {
         "Não foi possível encontrar a lista de compras"
       );
     const paths = await this.pathService.calculatePath(storeId, shoppingList);
+    return paths;
+  }
+
+  async getShoppingListShortestPathProfundidade(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ): Promise<CellCoordinates[][]> {
+    await this.createOrUpdateShoppingList(creatorId, storeId, products);
+    const shoppingList = await this.getShoppingListsByUser(creatorId, storeId);
+
+    shoppingList?.products.forEach((item) => {
+      if (!item.product.location)
+        throw createHttpError(
+          404,
+          `O produto ${item.product.name} não possui localização cadastrada, favor remova ele da lista.`
+        );
+    });
+
+    if (!shoppingList)
+      throw createHttpError(
+        404,
+        "Não foi possível encontrar a lista de compras"
+      );
+    const paths = await this.pathService.calculatePathProfundidade(
+      storeId,
+      shoppingList
+    );
+    return paths;
+  }
+
+  async getShoppingListShortestPathLargura(
+    creatorId: Types.ObjectId,
+    storeId: Types.ObjectId,
+    products: ShoppingListItem[]
+  ): Promise<CellCoordinates[][]> {
+    await this.createOrUpdateShoppingList(creatorId, storeId, products);
+    const shoppingList = await this.getShoppingListsByUser(creatorId, storeId);
+
+    shoppingList?.products.forEach((item) => {
+      if (!item.product.location)
+        throw createHttpError(
+          404,
+          `O produto ${item.product.name} não possui localização cadastrada, favor remova ele da lista.`
+        );
+    });
+
+    if (!shoppingList)
+      throw createHttpError(
+        404,
+        "Não foi possível encontrar a lista de compras"
+      );
+    const paths = await this.pathService.calculatePathLargura(
+      storeId,
+      shoppingList
+    );
     return paths;
   }
 }

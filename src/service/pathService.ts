@@ -1,5 +1,5 @@
-import { Types } from "mongoose";
 import createHttpError from "http-errors";
+import { Types } from "mongoose";
 import pathfinding, { DiagonalMovement } from "pathfinding";
 import MapModel, { Map, MapCellTypes } from "../models/map";
 import { PopulatedShoppingList } from "./shoppingListService";
@@ -17,6 +17,16 @@ export interface Path {
 
 export interface IPathService {
   calculatePath(
+    storeId: Types.ObjectId,
+    shoppingList: PopulatedShoppingList
+  ): Promise<CellCoordinates[][]>;
+
+  calculatePathProfundidade(
+    storeId: Types.ObjectId,
+    shoppingList: PopulatedShoppingList
+  ): Promise<CellCoordinates[][]>;
+
+  calculatePathLargura(
     storeId: Types.ObjectId,
     shoppingList: PopulatedShoppingList
   ): Promise<CellCoordinates[][]>;
@@ -184,6 +194,154 @@ export class PathService implements IPathService {
   }
 
   async calculatePath(
+    storeId: Types.ObjectId,
+    shoppingList: PopulatedShoppingList
+  ): Promise<CellCoordinates[][]> {
+    const map = await this.mapRepository.findOne({ storeId }).exec();
+    const coordinates = map?.items;
+    if (!coordinates) throw createHttpError(404, "Mapa sem locais");
+    const entrance = this.findEntrance(map as Map);
+
+    const grid = new pathfinding.Grid(10, 10);
+
+    coordinates.forEach((cell) => {
+      if (cell.type !== MapCellTypes.entrance)
+        grid.setWalkableAt(cell.x, cell.y, false);
+    });
+
+    const finder = new pathfinding.AStarFinder({
+      diagonalMovement: DiagonalMovement.OnlyWhenNoObstacles,
+    });
+
+    const entranceNode = entrance;
+    const shelfNodes = shoppingList.products
+      .map((product) => {
+        return {
+          ...product.product.location,
+          productId: product.product._id,
+        };
+      })
+      .filter((v) => v !== undefined) as CellCoordinates[];
+
+    const shelfNodesWalkable = shelfNodes
+      .map((node) => {
+        return {
+          ...this.findNearestAccessiblePoint(grid, 0, 0, node.x, node.y),
+          productId: node.productId,
+        };
+      })
+      .filter((point) => point !== null);
+
+    let start = entranceNode;
+    const result = this.calculateShortestPath(
+      grid,
+      finder,
+      entranceNode,
+      shelfNodesWalkable,
+      true
+    );
+
+    const shortestPaths = result.map((shelfNode: any) => {
+      const gridBackup = grid.clone();
+      const path = finder.findPath(
+        start.x,
+        start.y,
+        shelfNode.x,
+        shelfNode.y,
+        gridBackup
+      );
+      start = shelfNode;
+      return { path: path, productId: shelfNode.productId };
+    });
+
+    const formattedPaths = shortestPaths.map((path) => {
+      const formattedPath = path.path.map((node) => ({
+        x: node[0],
+        y: node[1],
+        productId: path.productId,
+      }));
+
+      return formattedPath;
+    });
+
+    return formattedPaths;
+  }
+
+  async calculatePathProfundidade(
+    storeId: Types.ObjectId,
+    shoppingList: PopulatedShoppingList
+  ): Promise<CellCoordinates[][]> {
+    const map = await this.mapRepository.findOne({ storeId }).exec();
+    const coordinates = map?.items;
+    if (!coordinates) throw createHttpError(404, "Mapa sem locais");
+    const entrance = this.findEntrance(map as Map);
+
+    const grid = new pathfinding.Grid(10, 10);
+
+    coordinates.forEach((cell) => {
+      if (cell.type !== MapCellTypes.entrance)
+        grid.setWalkableAt(cell.x, cell.y, false);
+    });
+
+    const finder = new pathfinding.AStarFinder({
+      diagonalMovement: DiagonalMovement.OnlyWhenNoObstacles,
+    });
+
+    const entranceNode = entrance;
+    const shelfNodes = shoppingList.products
+      .map((product) => {
+        return {
+          ...product.product.location,
+          productId: product.product._id,
+        };
+      })
+      .filter((v) => v !== undefined) as CellCoordinates[];
+
+    const shelfNodesWalkable = shelfNodes
+      .map((node) => {
+        return {
+          ...this.findNearestAccessiblePoint(grid, 0, 0, node.x, node.y),
+          productId: node.productId,
+        };
+      })
+      .filter((point) => point !== null);
+
+    let start = entranceNode;
+    const result = this.calculateShortestPath(
+      grid,
+      finder,
+      entranceNode,
+      shelfNodesWalkable,
+      true
+    );
+
+    const shortestPaths = result.map((shelfNode: any) => {
+      const gridBackup = grid.clone();
+      const path = finder.findPath(
+        start.x,
+        start.y,
+        shelfNode.x,
+        shelfNode.y,
+        gridBackup
+      );
+      start = shelfNode;
+      return { path: path, productId: shelfNode.productId };
+    });
+
+    const formattedPaths = shortestPaths.map((path) => {
+      const formattedPath = path.path.map((node) => ({
+        x: node[0],
+        y: node[1],
+        productId: path.productId,
+      }));
+
+      return formattedPath;
+    });
+
+    return formattedPaths;
+  }
+
+  async calculatePathLargura(
     storeId: Types.ObjectId,
     shoppingList: PopulatedShoppingList
   ): Promise<CellCoordinates[][]> {
