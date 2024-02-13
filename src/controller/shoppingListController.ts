@@ -190,11 +190,12 @@ export const getShoppingListShortestPathProfundidade: RequestHandler<
       );
     }
 
-    const paths = await shoppingListService.getShoppingListShortestPath(
-      creatorId,
-      storeId,
-      products
-    );
+    const paths =
+      await shoppingListService.getShoppingListShortestPathProfundidade(
+        creatorId,
+        storeId,
+        products
+      );
     res.status(200).json(paths);
   } catch (error) {
     next(error);
@@ -223,7 +224,7 @@ export const getShoppingListShortestPathLargura: RequestHandler<
       );
     }
 
-    const paths = await shoppingListService.getShoppingListShortestPath(
+    const paths = await shoppingListService.getShoppingListShortestPathLargura(
       creatorId,
       storeId,
       products
