@@ -25,7 +25,7 @@ export interface IPathService {
   calculatePathProfundidade(
     storeId: Types.ObjectId,
     shoppingList: PopulatedShoppingList
-  ): Promise<CellCoordinates[][]>;
+  ): Promise<{ paths: CellCoordinates[][]; tree: CellCoordinates[] }>;
 
   calculatePathLargura(
     storeId: Types.ObjectId,
@@ -274,7 +274,7 @@ export class PathService implements IPathService {
   async calculatePathProfundidade(
     storeId: Types.ObjectId,
     shoppingList: PopulatedShoppingList
-  ): Promise<CellCoordinates[][]> {
+  ): Promise<{ paths: CellCoordinates[][]; tree: CellCoordinates[] }> {
     console.log("calculatePathProfundidade");
     const map = await this.mapRepository.findOne({ storeId }).exec(); // Obter o mapa da loja
     const coordinates = map?.items;
@@ -318,12 +318,14 @@ export class PathService implements IPathService {
 
     let start = entranceNode;
     const shortestPaths: any[] = [];
+    let arvore: CellCoordinates[] | undefined = undefined;
 
     for (const shelfNode of shelfNodesWalkable) {
       this.visitedProfundidade = new Set();
       this.nodeFinalPath = null;
-      const path = this.profundidadeSearch(grid, start, shelfNode); //Realiza a busca
-
+      const profundidade = this.profundidadeSearch(grid, start, shelfNode); //Realiza a busca
+      const path = profundidade?.path;
+      arvore = profundidade?.tree;
       console.log(
         "Busca em profundidade finalizanda, passando por " +
           this.visitedProfundidade.size +
@@ -346,7 +348,7 @@ export class PathService implements IPathService {
 
       return formattedPath;
     });
-    return formattedPaths;
+    return { paths: formattedPaths as CellCoordinates[][], tree: arvore! };
   }
 
   larguraSearch(
@@ -387,7 +389,7 @@ export class PathService implements IPathService {
     grid: boolean[][],
     start: CellCoordinates,
     end: CellCoordinates
-  ): CellCoordinates[] | null {
+  ) {
     const path = this.checkIfIsEnd(grid, start, end);
     if (!this.nodeFinalPath) return null;
     const arvore = this.montarArvore(grid, start);
@@ -396,7 +398,7 @@ export class PathService implements IPathService {
     );
 
     if (!finalNode) return null;
-    return this.reconstructPath(finalNode);
+    return { path: this.reconstructPath(finalNode), tree: arvore };
   }
 
   checkIfIsEnd(

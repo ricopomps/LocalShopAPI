@@ -54,7 +54,7 @@ export interface IShoppingListService {
     creatorId: Types.ObjectId,
     storeId: Types.ObjectId,
     products: ShoppingListItem[]
-  ): Promise<CellCoordinates[][]>;
+  ): Promise<{ paths: CellCoordinates[][]; tree: CellCoordinates[] }>;
 
   getShoppingListShortestPathLargura(
     creatorId: Types.ObjectId,
@@ -324,7 +324,7 @@ export class ShoppingListService implements IShoppingListService {
     creatorId: Types.ObjectId,
     storeId: Types.ObjectId,
     products: ShoppingListItem[]
-  ): Promise<CellCoordinates[][]> {
+  ): Promise<{ paths: CellCoordinates[][]; tree: CellCoordinates[] }> {
     await this.createOrUpdateShoppingList(creatorId, storeId, products);
     const shoppingList = await this.getShoppingListsByUser(creatorId, storeId);
 
@@ -345,7 +345,7 @@ export class ShoppingListService implements IShoppingListService {
       storeId,
       shoppingList
     );
-    return paths;
+    return { paths: paths.paths, tree: paths.tree };
   }
 
   async getShoppingListShortestPathLargura(
