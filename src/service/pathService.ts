@@ -35,6 +35,9 @@ export interface IPathService {
 
 export class PathService implements IPathService {
   private mapRepository;
+  private visitedProfundidade: Set<string> = new Set();
+  private nodeFinalPath: CellCoordinates[] | null = null;
+  private nodeFinal: CellCoordinates | null = null;
   constructor() {
     this.mapRepository = MapModel;
   }
@@ -300,17 +303,6 @@ export class PathService implements IPathService {
 
     const shelfNodesWalkable = shelfNodes //Obtém os endereços da célula andável mais próximas das estantes dos produtos
       .map((node) => {
-        console.log(
-          "findNearestAccessiblePointProfundidade",
-          node,
-          this.findNearestAccessiblePointProfundidade(
-            grid,
-            0,
-            0,
-            node.x,
-            node.y
-          )
-        );
         return {
           ...this.findNearestAccessiblePointProfundidade(
             grid,
@@ -327,21 +319,24 @@ export class PathService implements IPathService {
     let start = entranceNode;
     const shortestPaths: any[] = [];
 
-    console.log("shelfNodesWalkable", shelfNodesWalkable);
-
     for (const shelfNode of shelfNodesWalkable) {
-      const path = this.depthFirstSearch(grid, start, shelfNode); //Realiza a busca
-      console.log("path", path);
+      this.visitedProfundidade = new Set();
+      this.nodeFinalPath = null;
+      const path = this.profundidadeSearch(grid, start, shelfNode); //Realiza a busca
+
+      console.log(
+        "Busca em profundidade finalizanda, passando por " +
+          this.visitedProfundidade.size +
+          " nós"
+      );
       if (path) {
         shortestPaths.push({ path, productId: shelfNode.productId });
-        start = shelfNode;
+        start = shelfNode.parent!;
       }
     }
-    console.log("shortestPaths", shortestPaths);
     const formattedPaths = shortestPaths.map((path) => {
       //Formata os caminhos para que o caminho fique vinculado a um produto, e o front consiga mostrar ele do jeito certo
       const formattedPath = path.path.map((node: any) => {
-        console.log("formattedPathNode", node);
         return {
           x: node.x,
           y: node.y,
@@ -351,18 +346,14 @@ export class PathService implements IPathService {
 
       return formattedPath;
     });
-
-    console.log("formattedPaths", formattedPaths);
     return formattedPaths;
   }
 
-  depthFirstSearch(
+  larguraSearch(
     grid: boolean[][],
     start: CellCoordinates,
     end: CellCoordinates
   ): CellCoordinates[] | null {
-    console.log("start", start);
-    console.log("end", end);
     const stack: CellCoordinates[] = [];
     const visited: Set<string> = new Set();
 
@@ -372,7 +363,9 @@ export class PathService implements IPathService {
     while (stack.length > 0) {
       const currentNode = stack.pop()!;
       if (currentNode.x === end.x && currentNode.y === end.y) {
-        console.log("Found path", currentNode);
+        console.log(
+          "Busca em largura finalizanda, passando por " + visited.size + " nós"
+        );
         return this.reconstructPath(currentNode);
       }
 
@@ -382,14 +375,80 @@ export class PathService implements IPathService {
         const neighborKey = `${neighbor.x},${neighbor.y}`;
         neighbor.parent = currentNode;
         if (!visited.has(neighborKey)) {
-          console.log("pushToStack", neighbor);
           stack.push(neighbor);
           visited.add(neighborKey);
         }
       }
     }
-    console.log("stack", stack);
     return null;
+  }
+
+  profundidadeSearch(
+    grid: boolean[][],
+    start: CellCoordinates,
+    end: CellCoordinates
+  ): CellCoordinates[] | null {
+    const path = this.checkIfIsEnd(grid, start, end);
+    if (!this.nodeFinalPath) return null;
+    const arvore = this.montarArvore(grid, start);
+    const finalNode = arvore.find(
+      (node) => node.x === end.x && node.y === end.y
+    );
+
+    if (!finalNode) return null;
+    return this.reconstructPath(finalNode);
+  }
+
+  checkIfIsEnd(
+    grid: boolean[][],
+    currentNode: CellCoordinates,
+    end: CellCoordinates
+  ) {
+    if (this.nodeFinalPath) return;
+    const currentNodeKey = `${currentNode.x},${currentNode.y}`;
+
+    this.visitedProfundidade.add(currentNodeKey);
+    if (currentNode.x === end.x && currentNode.y === end.y) {
+      console.log("FINALIZOU", this.visitedProfundidade.size);
+      this.nodeFinalPath = this.reconstructPath(currentNode);
+    }
+
+    const neighbors = this.getNeighbors(grid, currentNode);
+
+    for (const neighbor of neighbors) {
+      const neighborKey = `${neighbor.x},${neighbor.y}`;
+      neighbor.parent = currentNode;
+      if (!this.visitedProfundidade.has(neighborKey)) {
+        this.profundidadeSearch(grid, neighbor, end);
+      }
+    }
+  }
+
+  montarArvore(grid: boolean[][], start: CellCoordinates) {
+    const stack: CellCoordinates[] = [];
+    const arvore: CellCoordinates[] = [];
+    const visited: Set<string> = new Set();
+
+    stack.push(start);
+    arvore.push(start);
+    visited.add(`${start.x},${start.y}`);
+
+    while (stack.length > 0) {
+      const currentNode = stack.pop()!;
+
+      const neighbors = this.getNeighbors(grid, currentNode);
+
+      for (const neighbor of neighbors) {
+        const neighborKey = `${neighbor.x},${neighbor.y}`;
+        neighbor.parent = currentNode;
+        if (!visited.has(neighborKey)) {
+          stack.push(neighbor);
+          arvore.push(neighbor);
+          visited.add(neighborKey);
+        }
+      }
+    }
+    return arvore;
   }
 
   reconstructPath(end: CellCoordinates): CellCoordinates[] {
@@ -480,24 +539,24 @@ export class PathService implements IPathService {
     storeId: Types.ObjectId,
     shoppingList: PopulatedShoppingList
   ): Promise<CellCoordinates[][]> {
-    const map = await this.mapRepository.findOne({ storeId }).exec();
+    console.log("calculatePathLargura");
+    const map = await this.mapRepository.findOne({ storeId }).exec(); // Obter o mapa da loja
     const coordinates = map?.items;
     if (!coordinates) throw createHttpError(404, "Mapa sem locais");
-    const entrance = this.findEntrance(map as Map);
+    const entrance = this.findEntrance(map as Map); // Encontra entrada da loja
 
-    const grid = new pathfinding.Grid(10, 10);
+    const gridWidth = 10;
+    const gridHeight = 10;
+    const grid: boolean[][] = Array.from({ length: gridHeight }, () =>
+      Array(gridWidth).fill(true)
+    ); // monta grid booleana, true = pode andar, false = não pode andar
 
     coordinates.forEach((cell) => {
-      if (cell.type !== MapCellTypes.entrance)
-        grid.setWalkableAt(cell.x, cell.y, false);
-    });
-
-    const finder = new pathfinding.AStarFinder({
-      diagonalMovement: DiagonalMovement.OnlyWhenNoObstacles,
+      if (cell.type !== MapCellTypes.entrance) grid[cell.y][cell.x] = false; // Marca grids que não pode passar como falso
     });
 
     const entranceNode = entrance;
-    const shelfNodes = shoppingList.products
+    const shelfNodes = shoppingList.products //Obtém os endereços das estantes dos produtos
       .map((product) => {
         return {
           ...product.product.location,
@@ -506,43 +565,40 @@ export class PathService implements IPathService {
       })
       .filter((v) => v !== undefined) as CellCoordinates[];
 
-    const shelfNodesWalkable = shelfNodes
+    const shelfNodesWalkable = shelfNodes //Obtém os endereços da célula andável mais próximas das estantes dos produtos
       .map((node) => {
         return {
-          ...this.findNearestAccessiblePoint(grid, 0, 0, node.x, node.y),
+          ...this.findNearestAccessiblePointProfundidade(
+            grid,
+            0,
+            0,
+            node.x,
+            node.y
+          ),
           productId: node.productId,
         };
       })
-      .filter((point) => point !== null);
+      .filter((point) => point !== null) as CellCoordinates[];
 
     let start = entranceNode;
-    const result = this.calculateShortestPath(
-      grid,
-      finder,
-      entranceNode,
-      shelfNodesWalkable,
-      true
-    );
+    const shortestPaths: any[] = [];
 
-    const shortestPaths = result.map((shelfNode: any) => {
-      const gridBackup = grid.clone();
-      const path = finder.findPath(
-        start.x,
-        start.y,
-        shelfNode.x,
-        shelfNode.y,
-        gridBackup
-      );
-      start = shelfNode;
-      return { path: path, productId: shelfNode.productId };
-    });
-
+    for (const shelfNode of shelfNodesWalkable) {
+      const path = this.larguraSearch(grid, start, shelfNode); //Realiza a busca
+      if (path) {
+        shortestPaths.push({ path, productId: shelfNode.productId });
+        start = shelfNode.parent!;
+      }
+    }
     const formattedPaths = shortestPaths.map((path) => {
-      const formattedPath = path.path.map((node) => ({
-        x: node[0],
-        y: node[1],
-        productId: path.productId,
-      }));
+      //Formata os caminhos para que o caminho fique vinculado a um produto, e o front consiga mostrar ele do jeito certo
+      const formattedPath = path.path.map((node: any) => {
+        return {
+          x: node.x,
+          y: node.y,
+          productId: path.productId,
+        };
+      });
 
       return formattedPath;
     });
